@@ -577,7 +577,7 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 			
 		</xsl:for-each>
-		<xsl:text>)&#10;</xsl:text>
+		<xsl:text>);&#10;</xsl:text>
 		<xsl:text>}&#10;</xsl:text>
 		
 	</redirect:write>
