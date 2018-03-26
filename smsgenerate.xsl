@@ -302,7 +302,7 @@
 <xsl:template match="service">
 	<xsl:variable name="serviceInterfaceClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service'),concat(@name,'Service'))"/>
 	<xsl:variable name="serviceImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service.impl'),concat(@name,'ServiceImpl'))"/>
-	<xsl:variable name="controllerClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.controller'),concat(@name,'Contrloller'))"/>
+	<xsl:variable name="controllerClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.controller'),concat(@name,'Controller'))"/>
 	
 	<xsl:apply-templates select="method" mode="entity"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$serviceInterfaceClassFile))"/>
@@ -577,7 +577,7 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 			
 		</xsl:for-each>
-		<xsl:text>);&#10;</xsl:text>
+		<xsl:text>)&#10;</xsl:text>
 		<xsl:text>}&#10;</xsl:text>
 		
 	</redirect:write>
@@ -654,7 +654,7 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 			
 		</xsl:for-each>
-		<xsl:text>);&#10;</xsl:text>
+		<xsl:text>)&#10;</xsl:text>
 		<xsl:text>    {&#10;</xsl:text>
 		<xsl:text>        MapSqlParameterSource params = new MapSqlParameterSource()&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='in']">
@@ -736,7 +736,7 @@
 	<xsl:if test="@direction='in'">
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text>
 		<xsl:value-of select="istoe:translate(@name)"/>
-		<xsl:text>, required = </xsl:text>
+		<xsl:text>&quot;, required = </xsl:text>
 		<xsl:choose>
 			<xsl:when test="@null"><xsl:text>false</xsl:text></xsl:when>
 			<xsl:otherwise><xsl:text>true</xsl:text></xsl:otherwise>
