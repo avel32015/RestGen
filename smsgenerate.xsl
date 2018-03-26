@@ -87,6 +87,15 @@
 </default>	
 </xsl:variable>
 <!-- JNAME EXTENSION-->
+<func:function name="jname:oracleToJavaType">
+	<xsl:param name="oracleType"/>
+	<func:result>
+		<xsl:if test="$oracleType='number'"><xsl:text>Integer</xsl:text></xsl:if>
+		<xsl:if test="$oracleType='numeric'"><xsl:text>Long</xsl:text></xsl:if>
+		<xsl:if test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:if>
+		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>			
+	</func:result>
+</func:function>
 <func:function name="jname:javaFileName">
 	<xsl:param name="path"/>
 	<xsl:param name="classPackage"/>
@@ -171,12 +180,7 @@
 <func:function name="jname:requestGetParam">
 	<xsl:param name="name"/>
 	<xsl:param name="oracleType"/>
-	<xsl:variable name="type">
-		<xsl:if test="$oracleType='number'"><xsl:text>int</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='numeric'"><xsl:text>long</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>	
-	</xsl:variable>	
+	<xsl:variable name="type" select="jname:oracleToJavaType($oracleType)"/>
 	<func:result>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
@@ -190,12 +194,8 @@
 <func:function name="jname:mapResultGet">
 	<xsl:param name="name"/>
 	<xsl:param name="oracleType"/>
-	<xsl:variable name="type">
-		<xsl:if test="$oracleType='number'"><xsl:text>Integer</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='numeric'"><xsl:text>Long</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>	
-	</xsl:variable>
+	<xsl:variable name="type" select="jname:oracleToJavaType($oracleType)"/>
+
 	<func:result>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
@@ -227,10 +227,7 @@
 	<xsl:param name="oracleType"/>
 	<xsl:param name="oracleName"/>
 	<func:result>
-		<xsl:if test="$oracleType='number'"><xsl:text>int</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='numeric'"><xsl:text>long</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>
+		<xsl:value-of select="jname:oracleToJavaType($oracleType)"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName($oracleName))"/>
 	</func:result>
@@ -302,7 +299,7 @@
 <xsl:template match="service">
 	<xsl:variable name="serviceInterfaceClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service'),concat(@name,'Service'))"/>
 	<xsl:variable name="serviceImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service.impl'),concat(@name,'ServiceImpl'))"/>
-	<xsl:variable name="controllerClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.controller'),concat(@name,'Contrloller'))"/>
+	<xsl:variable name="controllerClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.controller'),concat(@name,'Controller'))"/>
 	
 	<xsl:apply-templates select="method" mode="entity"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$serviceInterfaceClassFile))"/>
@@ -568,7 +565,7 @@
 		<xsl:value-of select="istoe:fromLowerCase(@name)"/>
 		<xsl:text>(&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='in']">
-		<xsl:text>                </xsl:text>
+			<xsl:text>                </xsl:text>
 			<xsl:choose>
 				<xsl:when test="@null"><xsl:text>@Nullable </xsl:text></xsl:when>
 				<xsl:otherwise><xsl:text>@NotNull </xsl:text></xsl:otherwise>
@@ -654,7 +651,7 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 			
 		</xsl:for-each>
-		<xsl:text>);&#10;</xsl:text>
+		<xsl:text>)&#10;</xsl:text>
 		<xsl:text>    {&#10;</xsl:text>
 		<xsl:text>        MapSqlParameterSource params = new MapSqlParameterSource()&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='in']">
@@ -736,7 +733,7 @@
 	<xsl:if test="@direction='in'">
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text>
 		<xsl:value-of select="istoe:translate(@name)"/>
-		<xsl:text>, required = </xsl:text>
+		<xsl:text>&quot;, required = </xsl:text>
 		<xsl:choose>
 			<xsl:when test="@null"><xsl:text>false</xsl:text></xsl:when>
 			<xsl:otherwise><xsl:text>true</xsl:text></xsl:otherwise>
@@ -748,12 +745,7 @@
 			<xsl:text>&quot;)&#10;</xsl:text>
 		</xsl:if>
 		<xsl:text>    private </xsl:text>
-		<xsl:variable name="type">
-			<xsl:if test="@type='number'"><xsl:text>int</xsl:text></xsl:if>
-			<xsl:if test="@type='numeric'"><xsl:text>long</xsl:text></xsl:if>
-			<xsl:if test="@type='varchar2'"><xsl:text>String</xsl:text></xsl:if>
-			<xsl:if test="@type='timestamp'"><xsl:text>Date</xsl:text></xsl:if>	
-		</xsl:variable>	
+		<xsl:variable name="type" select="jname:oracleToJavaType(@type)"/>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
@@ -764,19 +756,14 @@
 	<xsl:if test="@direction='out'">
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text>
 		<xsl:value-of select="istoe:translate(@name)"/>
-		<xsl:text>, required = </xsl:text>
+		<xsl:text>&quot;, required = </xsl:text>
 		<xsl:choose>
 			<xsl:when test="@null"><xsl:text>false</xsl:text></xsl:when>
 			<xsl:otherwise><xsl:text>true</xsl:text></xsl:otherwise>
 		</xsl:choose>
 		<xsl:text>)&#10;</xsl:text>
 		<xsl:text>    private </xsl:text>
-		<xsl:variable name="type">
-			<xsl:if test="@type='number'"><xsl:text>int</xsl:text></xsl:if>
-			<xsl:if test="@type='numeric'"><xsl:text>long</xsl:text></xsl:if>
-			<xsl:if test="@type='varchar2'"><xsl:text>String</xsl:text></xsl:if>
-			<xsl:if test="@type='timestamp'"><xsl:text>Date</xsl:text></xsl:if>	
-		</xsl:variable>	
+		<xsl:variable name="type" select="jname:oracleToJavaType(@type)"/>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
