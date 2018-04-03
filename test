@@ -1,8 +1,8 @@
 #!/bin/sh
 
-lib=../lib
-classpath=$lib/xalan.jar:$lib/serializer.jar
-schema=$lib/smsgenerate.xsl
+lib=.
+classpath=$lib/xalan.jar:$lib/serializer.jar:$lib/bsf-all-3.1.jar
+schema=smsgenerate.xsl
 
 if [ ! -f "$schema" ]; then
     echo "ERROR: Schema not found"

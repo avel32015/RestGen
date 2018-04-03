@@ -7,7 +7,8 @@
     						xmlns:common="http://exslt.org/common"
     						xmlns:istoe="http://istoe.org/istoe"
     						xmlns:jname="http://istoe.org/jname"
-							extension-element-prefixes="redirect xalan func common istoe jname">
+    						xmlns:regexp="http://istoe.org/regexp"
+							extension-element-prefixes="redirect xalan func common istoe jname regexp">
 <xsl:output method="text" version="1.0" encoding="utf-8" indent="yes"/>
 <!-- DEFAULT IMPORTS -->
 <xsl:variable name="defaults">
@@ -86,6 +87,23 @@
 	</annatation>
 </default>	
 </xsl:variable>
+
+<xalan:component prefix="regexp" functions="replace">
+    <xalan:script lang="javascript">
+
+    function replace(str, pattern, flags, repl) {
+        if (typeof(str) !== "string") return str;
+        return str.replace( new RegExp(pattern, flags), repl);
+    }
+    
+    function test(str, pattern, flags) {
+        return new RegExp(pattern, flags).test(str);
+    }
+    
+    </xalan:script>
+</xalan:component>
+
+
 <!-- JNAME EXTENSION-->
 <func:function name="jname:oracleToJavaType">
 	<xsl:param name="oracleType"/>
@@ -212,12 +230,14 @@
 <func:function name="jname:oracleToJavaParamName">
 	<xsl:param name="str"/>
 	<xsl:variable name="param">
-		<xsl:if test="(starts-with($str,'i_')) or (starts-with($str,'I_')) or (starts-with($str,'o_')) or (starts-with($str,'O_'))">
+        <xsl:value-of select="regexp:replace($str, '^[io]{1,2}_', 'i')" />
+	
+		<!--<xsl:if test="(starts-with($str,'i_')) or (starts-with($str,'I_')) or (starts-with($str,'o_')) or (starts-with($str,'O_'))">
 			<xsl:value-of select="substring($str,3,string-length($str)-2)"/>
 		</xsl:if>
 		<xsl:if test="(starts-with($str,'io_')) or (starts-with($str,'IO_'))">
 			<xsl:value-of select="substring($str,4,string-length($str)-3)"/>
-		</xsl:if>
+		</xsl:if>-->
 	</xsl:variable>
 	<func:result>
 		<xsl:value-of select="istoe:fromUpperCase(istoe:removeAll_($param))"></xsl:value-of>
