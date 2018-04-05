@@ -1,8 +1,8 @@
 #!/bin/sh
 
-lib=.
-classpath=$lib/xalan.jar:$lib/serializer.jar:$lib/bsf-all-3.1.jar
+lib=lib
 schema=smsgenerate.xsl
+classpath=$lib/xalan.jar
 
 if [ ! -f "$schema" ]; then
     echo "ERROR: Schema not found"
@@ -11,7 +11,7 @@ fi
 
 rm -f -r java
 
-java_cmd="java -classpath $classpath org.apache.xalan.xslt.Process -in application.xml -xsl $schema"
+java_cmd="java -cp $classpath org.apache.xalan.xslt.Process -in application.xml -xsl $schema"
 
 echo $java_cmd
 

@@ -1,15 +1,17 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0" 
-							xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-							xmlns:redirect="http://xml.apache.org/xalan/redirect"
-							xmlns:xalan="http://xml.apache.org/xalan"
-    						xmlns:func="http://exslt.org/functions"
-    						xmlns:common="http://exslt.org/common"
-    						xmlns:istoe="http://istoe.org/istoe"
-    						xmlns:jname="http://istoe.org/jname"
-    						xmlns:regexp="http://istoe.org/regexp"
-							extension-element-prefixes="redirect xalan func common istoe jname regexp">
+<?xml version="1.0"?>
+<xsl:stylesheet version="1.0"   
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
+    xmlns:xalan="http://xml.apache.org/xalan"
+    xmlns:redirect="http://xml.apache.org/xalan/redirect"
+    xmlns:func="http://exslt.org/functions"
+    xmlns:common="http://exslt.org/common"
+    xmlns:istoe="http://istoe.org/istoe"
+    xmlns:jname="http://istoe.org/jname"
+    xmlns:java="http://xml.apache.org/xalan/java"
+    extension-element-prefixes="xalan redirect func common istoe jname java">
+
 <xsl:output method="text" version="1.0" encoding="utf-8" indent="yes"/>
+
 <!-- DEFAULT IMPORTS -->
 <xsl:variable name="defaults">
 <default>
@@ -65,8 +67,6 @@
 		<item type="entityResponseClass">import static com.fasterxml.jackson.annotation.JsonInclude.Include;&#10;</item>
 		<item type="entityResponseClass">import javax.validation.constraints.NotNull;&#10;</item>
 		
-		
-		
 	</import>
 	<annatation>
 		<item type="appClass">@SpringBootApplication(exclude = MetricsDropwizardAutoConfiguration.class)&#10;</item>
@@ -88,22 +88,6 @@
 </default>	
 </xsl:variable>
 
-<xalan:component prefix="regexp" functions="replace">
-    <xalan:script lang="javascript">
-
-    function replace(str, pattern, flags, repl) {
-        if (typeof(str) !== "string") return str;
-        return str.replace( new RegExp(pattern, flags), repl);
-    }
-    
-    function test(str, pattern, flags) {
-        return new RegExp(pattern, flags).test(str);
-    }
-    
-    </xalan:script>
-</xalan:component>
-
-
 <!-- JNAME EXTENSION-->
 <func:function name="jname:oracleToJavaType">
 	<xsl:param name="oracleType"/>
@@ -114,6 +98,7 @@
 		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>			
 	</func:result>
 </func:function>
+
 <func:function name="jname:javaFileName">
 	<xsl:param name="path"/>
 	<xsl:param name="classPackage"/>
@@ -127,6 +112,7 @@
 		<xsl:text>.java</xsl:text>
 	</func:result>	
 </func:function>
+
 <func:function name="jname:packageLine">
 	<xsl:param name="base"/>
 	<xsl:param name="application"/>
@@ -143,6 +129,7 @@
     	<xsl:text>;&#10;&#10;</xsl:text>
 	</func:result>	
 </func:function>
+
 <func:function name="jname:defaultImportLines">
 	<xsl:param name="type"/>
 	<func:result>
@@ -151,6 +138,7 @@
       </xsl:for-each>
     </func:result>
 </func:function>
+
 <func:function name="jname:defaultAnnatationLines">
 	<xsl:param name="type"/>
 	<func:result>
@@ -159,6 +147,7 @@
       </xsl:for-each>
     </func:result>
 </func:function>
+
 <func:function name="jname:finalStringOracleParam">
 	<xsl:param name="name"/>
 	<func:result>
@@ -169,6 +158,7 @@
 		<xsl:text>";&#10;</xsl:text>
 	</func:result>
 </func:function>
+
 <func:function name="jname:newSqlParameter">
 	<xsl:param name="name"/>
 	<xsl:param name="type"/>
@@ -185,6 +175,7 @@
 		<xsl:text>)</xsl:text>
 	</func:result>
 </func:function>
+
 <func:function name="jname:mapAddValue">
 	<xsl:param name="name"/>
 	<func:result>
@@ -195,6 +186,7 @@
 	<xsl:text>)</xsl:text>
 	</func:result>
 </func:function>
+
 <func:function name="jname:requestGetParam">
 	<xsl:param name="name"/>
 	<xsl:param name="oracleType"/>
@@ -225,12 +217,11 @@
 		<xsl:text>);</xsl:text>
 	</func:result>
 </func:function>
-      
                       
 <func:function name="jname:oracleToJavaParamName">
 	<xsl:param name="str"/>
 	<xsl:variable name="param">
-        <xsl:value-of select="regexp:replace($str, '^[io]{1,2}_', 'i')" />
+        <xsl:value-of select="java:replaceFirst(string($str), '^[IiOo]{1,2}_', '')"/>
 	
 		<!--<xsl:if test="(starts-with($str,'i_')) or (starts-with($str,'I_')) or (starts-with($str,'o_')) or (starts-with($str,'O_'))">
 			<xsl:value-of select="substring($str,3,string-length($str)-2)"/>
@@ -243,6 +234,7 @@
 		<xsl:value-of select="istoe:fromUpperCase(istoe:removeAll_($param))"></xsl:value-of>
 	</func:result>
 </func:function>
+
 <func:function name="jname:paramMethodFromOracle">
 	<xsl:param name="oracleType"/>
 	<xsl:param name="oracleName"/>
@@ -296,6 +288,7 @@
 	<xsl:param name="str"/>
 	<func:result select="concat(istoe:translate(substring($str,1,1),'false'),substring($str,2,string-length($str)-1))"/>
 </func:function>
+
 <xsl:template match="/application">
 	<xsl:variable name="applicationClassFile" select="jname:javaFileName(@basePath,concat(concat(@basePackage,'.'),istoe:translate(@name,'false')),concat(@name,'App'))"/>
 	<xsltext>&lt;istoe&gt;&#10;</xsltext>
@@ -316,6 +309,7 @@
 	<xsl:apply-templates select="service"/>
 	<xsltext>&lt;/istoe&gt;&#10;</xsltext>
 </xsl:template>
+
 <xsl:template match="service">
 	<xsl:variable name="serviceInterfaceClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service'),concat(@name,'Service'))"/>
 	<xsl:variable name="serviceImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service.impl'),concat(@name,'ServiceImpl'))"/>
@@ -387,13 +381,7 @@
 		</xsl:for-each>
 		<xsl:text>    }&#10;</xsl:text>
 		<xsl:apply-templates select="method" mode="serviceOverride"/>		
-
-
- 		
  		<xsl:text>}</xsl:text>
-
- 		
- 		
  	</redirect:write>
  	<xsl:value-of select="istoe:log(concat('generate ',$controllerClassFile))"/>
  	
@@ -415,7 +403,6 @@
  		<xsl:text>")&#10;</xsl:text>	
 		<xsl:text>public class </xsl:text><xsl:value-of select="@name"/><xsl:text>Controller {&#10;</xsl:text>
  		<xsl:text>    private final </xsl:text>
- 		
  		<xsl:variable name="service" select="concat(@name,'Service')"/>
  		<xsl:value-of select="$service"/>
  		<xsl:text> </xsl:text>
@@ -438,8 +425,8 @@
  	</redirect:write>
  	<xsl:apply-templates select="method" mode="repository"/>
  	<xsl:apply-templates select="method" mode="repositoryImpl"/>
- 	
 </xsl:template>
+
 <xsl:template match="method" mode="importEntity">
 	<xsl:variable name="importEntity">
 		<xsl:text>import </xsl:text>
@@ -452,6 +439,7 @@
 	<xsl:value-of select="concat($importEntity,'Request;&#10;')"/>
 	<xsl:value-of select="concat($importEntity,'Response;&#10;')"/>
 </xsl:template>
+
 <xsl:template match="method" mode="importRepository">
 	<xsl:variable name="import">
 		<xsl:text>import </xsl:text>
@@ -474,7 +462,6 @@
 	<xsl:text>Request request);&#10;</xsl:text>
 </xsl:template>
 
-
 <xsl:template match="method" mode="controller">
 	<xsl:value-of select="concat(concat('    @PostMapping(&quot;/',istoe:fromUpperCase(@name)),'&quot;)&#10;')"/>
 	<xsl:text>    @Timed&#10;</xsl:text>
@@ -491,6 +478,7 @@
 	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
 	<xsl:text>(request);&#10;    }&#10;</xsl:text>
 </xsl:template>
+
 <xsl:template  match="method" mode="serviceOverride">
 	<xsl:text>&#10;    @Override&#10;    public </xsl:text>
 	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
@@ -524,9 +512,9 @@
 	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
 	<xsl:text> response: {}&quot;, response);&#10;</xsl:text>	
 	<xsl:text>&#10;        return response;&#10;</xsl:text>
-	
 	<xsl:text>    }&#10;</xsl:text>
 </xsl:template>
+
 <xsl:template match="method" mode="entity">
 	<xsl:variable name="entityRequestClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.entity'),concat(istoe:fromUpperCase(@name),'Request'))"/>
 	<xsl:variable name="entityResponseClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.entity'),concat(istoe:fromUpperCase(@name),'Response'))"/>	
@@ -558,8 +546,8 @@
 		<xsl:apply-templates select="procedure/param[@direction='out']" mode="entityParamOut"/>
 		<xsl:text>}&#10;</xsl:text>		
 	</redirect:write>	
-
 </xsl:template>
+
 <xsl:template match="method" mode="repository">
 	<xsl:variable name="repositoryClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository'),concat(istoe:fromUpperCase(@name),'Repository'))"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$repositoryClassFile))"/>
@@ -596,7 +584,6 @@
 		</xsl:for-each>
 		<xsl:text>);&#10;</xsl:text>
 		<xsl:text>}&#10;</xsl:text>
-		
 	</redirect:write>
 </xsl:template>
 
@@ -669,7 +656,6 @@
 			</xsl:choose>
 			<xsl:value-of select="jname:paramMethodFromOracle(@type,@name)"/>
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
-			
 		</xsl:for-each>
 		<xsl:text>)&#10;</xsl:text>
 		<xsl:text>    {&#10;</xsl:text>
@@ -711,12 +697,11 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>&#10;</xsl:text></xsl:if>
 		</xsl:for-each>
 		<xsl:text>;&#10;</xsl:text>
-		
-			
 		<xsl:text>    }&#10;</xsl:text>
 		<xsl:text>}&#10;</xsl:text>
 	</redirect:write>
 </xsl:template>
+
 <xsl:template match="procedure" mode="importType">
 	<xsl:if test="param[@type='timestamp']">
 		<xsl:text>import java.util.Date;&#10;</xsl:text>
@@ -728,6 +713,7 @@
 		<xsl:text>import java.util.Date;&#10;</xsl:text>
 	</xsl:if>
 </xsl:template>
+
 <xsl:template match="procedure" mode="importTypeOut">
 	<xsl:if test="param[@type='timestamp' and @direction='out']">
 		<xsl:text>import java.util.Date;&#10;</xsl:text>
@@ -772,6 +758,7 @@
 		<xsl:text>;&#10;&#10;</xsl:text>
 	</xsl:if>
 </xsl:template>
+
 <xsl:template match="param" mode="entityParamOut">
 	<xsl:if test="@direction='out'">
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text>
@@ -790,4 +777,5 @@
 		<xsl:text>;&#10;&#10;</xsl:text>
 	</xsl:if>
  </xsl:template>
+ 
 </xsl:stylesheet>
