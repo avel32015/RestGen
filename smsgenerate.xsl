@@ -91,6 +91,7 @@
 <!-- JNAME EXTENSION-->
 <func:function name="jname:oracleToJavaType">
 	<xsl:param name="oracleType"/>
+	<xsl:param name="oracleSize"/>
 	<func:result>
 		<xsl:if test="$oracleType='number'"><xsl:text>Integer</xsl:text></xsl:if>
 		<xsl:if test="$oracleType='numeric'"><xsl:text>Long</xsl:text></xsl:if>
@@ -190,7 +191,8 @@
 <func:function name="jname:requestGetParam">
 	<xsl:param name="name"/>
 	<xsl:param name="oracleType"/>
-	<xsl:variable name="type" select="jname:oracleToJavaType($oracleType)"/>
+	<xsl:param name="oracleSize"/>
+	<xsl:variable name="type" select="jname:oracleToJavaType($oracleType, $oracleSize)"/>
 	<func:result>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
@@ -204,7 +206,8 @@
 <func:function name="jname:mapResultGet">
 	<xsl:param name="name"/>
 	<xsl:param name="oracleType"/>
-	<xsl:variable name="type" select="jname:oracleToJavaType($oracleType)"/>
+	<xsl:param name="oracleSize"/>
+	<xsl:variable name="type" select="jname:oracleToJavaType($oracleType, $oracleSize)"/>
 
 	<func:result>
 		<xsl:value-of select="$type"/>
@@ -238,8 +241,9 @@
 <func:function name="jname:paramMethodFromOracle">
 	<xsl:param name="oracleType"/>
 	<xsl:param name="oracleName"/>
+	<xsl:param name="oracleSize"/>
 	<func:result>
-		<xsl:value-of select="jname:oracleToJavaType($oracleType)"/>
+		<xsl:value-of select="jname:oracleToJavaType($oracleType, $oracleSize)"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName($oracleName))"/>
 	</func:result>
@@ -492,7 +496,7 @@
 	<xsl:text> request: {}&quot;, request);&#10;&#10;</xsl:text>
 	<xsl:for-each select="procedure/param[@direction='in']">
 		<xsl:text>        </xsl:text>
-		<xsl:value-of select="jname:requestGetParam(@name,@type)"/>
+		<xsl:value-of select="jname:requestGetParam(@name,@type,@size)"/>
 		<xsl:text>&#10;</xsl:text>
 	</xsl:for-each>
 	<xsl:text>&#10;</xsl:text>
@@ -578,7 +582,7 @@
 				<xsl:when test="@null"><xsl:text>@Nullable </xsl:text></xsl:when>
 				<xsl:otherwise><xsl:text>@NotNull </xsl:text></xsl:otherwise>
 			</xsl:choose>
-			<xsl:value-of select="jname:paramMethodFromOracle(@type,@name)"/>
+			<xsl:value-of select="jname:paramMethodFromOracle(@type,@name,@size)"/>
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 			
 		</xsl:for-each>
@@ -654,7 +658,7 @@
 				<xsl:when test="@null"><xsl:text>@Nullable </xsl:text></xsl:when>
 				<xsl:otherwise><xsl:text>@NotNull </xsl:text></xsl:otherwise>
 			</xsl:choose>
-			<xsl:value-of select="jname:paramMethodFromOracle(@type,@name)"/>
+			<xsl:value-of select="jname:paramMethodFromOracle(@type,@name,@size)"/>
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 		</xsl:for-each>
 		<xsl:text>)&#10;</xsl:text>
@@ -670,7 +674,7 @@
 		<xsl:text>        log.trace("Raw result of calling stored procedure ({}): {}", simpleJdbcCall.getCallString(), result);&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
 			<xsl:text>        </xsl:text>
-			<xsl:value-of select="jname:mapResultGet(@name,@type)"/>
+			<xsl:value-of select="jname:mapResultGet(@name,@type,@size)"/>
 			<xsl:text>&#10;</xsl:text>
 		</xsl:for-each>
 		<xsl:text>        log.debug(&quot;Result of calling stored procedure ({}): </xsl:text>
@@ -737,8 +741,9 @@
 
 <xsl:template match="param" mode="entityParamIn">
 	<xsl:if test="@direction='in'">
+        <xsl:variable name="reqName" select="java:replaceFirst(istoe:translate(@name), '^[IO]{1,2}_', '')"/>
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text>
-		<xsl:value-of select="istoe:translate(@name)"/>
+		<xsl:value-of select="$reqName"/>
 		<xsl:text>&quot;, required = </xsl:text>
 		<xsl:choose>
 			<xsl:when test="@null"><xsl:text>false</xsl:text></xsl:when>
@@ -747,11 +752,11 @@
 		<xsl:text>)&#10;</xsl:text>
 		<xsl:if test="not (@null)">
 			<xsl:text>    @NotNull(message = &quot;Не указано поле </xsl:text>
-			<xsl:value-of select="istoe:translate(@name)"/>
+			<xsl:value-of select="$reqName"/>
 			<xsl:text>&quot;)&#10;</xsl:text>
 		</xsl:if>
 		<xsl:text>    private </xsl:text>
-		<xsl:variable name="type" select="jname:oracleToJavaType(@type)"/>
+		<xsl:variable name="type" select="jname:oracleToJavaType(@type, @size)"/>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
@@ -761,8 +766,9 @@
 
 <xsl:template match="param" mode="entityParamOut">
 	<xsl:if test="@direction='out'">
+        <xsl:variable name="reqName" select="java:replaceFirst(istoe:translate(@name), '^[IO]{1,2}_', '')"/>
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text>
-		<xsl:value-of select="istoe:translate(@name)"/>
+		<xsl:value-of select="$reqName"/>
 		<xsl:text>&quot;, required = </xsl:text>
 		<xsl:choose>
 			<xsl:when test="@null"><xsl:text>false</xsl:text></xsl:when>
@@ -770,7 +776,7 @@
 		</xsl:choose>
 		<xsl:text>)&#10;</xsl:text>
 		<xsl:text>    private </xsl:text>
-		<xsl:variable name="type" select="jname:oracleToJavaType(@type)"/>
+		<xsl:variable name="type" select="jname:oracleToJavaType(@type, @size)"/>
 		<xsl:value-of select="$type"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
