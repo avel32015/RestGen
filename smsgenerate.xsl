@@ -93,7 +93,16 @@
 	<xsl:param name="oracleType"/>
 	<xsl:param name="oracleSize"/>
 	<func:result>
-		<xsl:if test="$oracleType='number'"><xsl:text>Integer</xsl:text></xsl:if>
+		<xsl:if test="$oracleType='number'">
+            <xsl:choose>
+                <xsl:when test="$oracleSize > 9">
+                    <xsl:text>Long</xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>Integer</xsl:text>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:if>
 		<xsl:if test="$oracleType='numeric'"><xsl:text>Long</xsl:text></xsl:if>
 		<xsl:if test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:if>
 		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>			
