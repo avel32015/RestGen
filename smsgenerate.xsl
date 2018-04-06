@@ -105,7 +105,8 @@
         </xsl:if>
 		<xsl:if test="$oracleType='numeric'"><xsl:text>Long</xsl:text></xsl:if>
 		<xsl:if test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:if>
-		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>			
+		<xsl:if test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:if>
+		<xsl:if test="$oracleType=''"><xsl:text>void</xsl:text></xsl:if>
 	</func:result>
 </func:function>
 
@@ -207,7 +208,7 @@
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName($name))"/>	
 		<xsl:text> = request.get</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(jname:oracleToJavaParamName($name))"/>
+		<xsl:value-of select="jname:oracleToJavaParamName($name)"/>
 		<xsl:text>();</xsl:text>
 	</func:result>
 </func:function>
@@ -232,18 +233,9 @@
                       
 <func:function name="jname:oracleToJavaParamName">
 	<xsl:param name="str"/>
-	<xsl:variable name="param">
-        <xsl:value-of select="java:replaceFirst(string($str), '^[IiOo]{1,2}_', '')"/>
-	
-		<!--<xsl:if test="(starts-with($str,'i_')) or (starts-with($str,'I_')) or (starts-with($str,'o_')) or (starts-with($str,'O_'))">
-			<xsl:value-of select="substring($str,3,string-length($str)-2)"/>
-		</xsl:if>
-		<xsl:if test="(starts-with($str,'io_')) or (starts-with($str,'IO_'))">
-			<xsl:value-of select="substring($str,4,string-length($str)-3)"/>
-		</xsl:if>-->
-	</xsl:variable>
+	<xsl:variable name="param" select="java:replaceFirst(string($str), '^[IiOo]{1,2}_', '')"/>
 	<func:result>
-		<xsl:value-of select="istoe:fromUpperCase(istoe:removeAll_($param))"></xsl:value-of>
+		<xsl:value-of select="jname:JavaClassName($param)"></xsl:value-of>
 	</func:result>
 </func:function>
 
@@ -255,6 +247,20 @@
 		<xsl:value-of select="jname:oracleToJavaType($oracleType, $oracleSize)"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName($oracleName))"/>
+	</func:result>
+</func:function>
+
+<func:function name="jname:JavaClassName">
+	<xsl:param name="str"/>
+	<func:result>
+		<xsl:value-of select="istoe:fromUpperCase(istoe:removeAll_($str))"/>
+	</func:result>
+</func:function>
+
+<func:function name="jname:JavaVarName">
+	<xsl:param name="str"/>
+	<func:result>
+		<xsl:value-of select="istoe:fromLowerCase(istoe:removeAll_($str))"/>
 	</func:result>
 </func:function>
 
@@ -286,16 +292,19 @@
 		<xsl:otherwise><func:result select="translate($str,$upperCaseAlphabet,$lowerCaseAlphabet)"/></xsl:otherwise>
 	</xsl:choose>
 </func:function>
+
 <!-- Выводит строку в текущий поток вывода с \n -->
 <func:function name="istoe:log">
 	<xsl:param name="str"/>
 	<func:result select="concat($str,'&#10;')"/>
 </func:function>
+
 <!-- Переводит строку в строку с заглавной буквы -->
 <func:function name="istoe:fromUpperCase">
 	<xsl:param name="str"/>
 	<func:result select="concat(istoe:translate(substring($str,1,1)),substring($str,2,string-length($str)-1))"/>
 </func:function>
+
 <!-- Переводит строку в строку с маленькой буквы -->
 <func:function name="istoe:fromLowerCase">
 	<xsl:param name="str"/>
@@ -353,7 +362,7 @@
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.service.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Service;&#10;</xsl:text>
 		<xsl:apply-templates select="method/procedure" mode="importType"/>	  
  		<xsl:text>&#10;</xsl:text>
@@ -365,9 +374,9 @@
  		<xsl:text> {&#10;&#10;</xsl:text>
  		<xsl:for-each select="method">
  			<xsl:text>    private final </xsl:text>
- 			<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+ 			<xsl:value-of select="jname:JavaClassName(@name)"/>
  			<xsl:text>Repository </xsl:text>
- 			<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+ 			<xsl:value-of select="jname:JavaVarName(@name)"/>
  			<xsl:text>Repository;&#10;</xsl:text>
  		</xsl:for-each>
 		<xsl:text>    @Autowired&#10;</xsl:text>
@@ -376,19 +385,19 @@
 		<xsl:text>(&#10;</xsl:text>
 		<xsl:for-each select="method">
 			<xsl:text>            </xsl:text>
- 			<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+ 			<xsl:value-of select="jname:JavaClassName(@name)"/>
  			<xsl:text>Repository </xsl:text>
- 			<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+ 			<xsl:value-of select="jname:JavaVarName(@name)"/>
  			<xsl:text>Repository</xsl:text>
  			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 		</xsl:for-each>
 		<xsl:text>) {&#10;</xsl:text>
 		<xsl:for-each select="method">
 			<xsl:text>        this.</xsl:text>
-			<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+			<xsl:value-of select="jname:JavaVarName(@name)"/>
  			<xsl:text>Repository</xsl:text>	
  			<xsl:text> = </xsl:text>	
- 			<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+ 			<xsl:value-of select="jname:JavaVarName(@name)"/>
  			<xsl:text>Repository</xsl:text>	
  			<xsl:text>;&#10;</xsl:text>
 		</xsl:for-each>
@@ -407,7 +416,7 @@
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.service.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Service;&#10;</xsl:text>  
  		<xsl:text>&#10;</xsl:text>
  		<xsl:value-of select="jname:defaultAnnatationLines('controllerClass')"/>
@@ -419,19 +428,19 @@
  		<xsl:variable name="service" select="concat(@name,'Service')"/>
  		<xsl:value-of select="$service"/>
  		<xsl:text> </xsl:text>
- 		<xsl:value-of select="istoe:fromLowerCase($service)"/>
+ 		<xsl:value-of select="jname:JavaVarName($service)"/>
  		<xsl:text>;&#10;</xsl:text>
  		<xsl:text>    @Autowired&#10;</xsl:text>
  		<xsl:text>    public </xsl:text>
- 		<xsl:value-of select="@name"/><xsl:text>Controller(</xsl:text>
- 		<xsl:value-of select="istoe:fromUpperCase($service)"/>
+ 		<xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Controller(</xsl:text>
+ 		<xsl:value-of select="jname:JavaClassName($service)"/>
  		<xsl:text> </xsl:text>
- 		<xsl:value-of select="istoe:fromLowerCase($service)"/>
+ 		<xsl:value-of select="jname:JavaVarName($service)"/>
  		<xsl:text>) {&#10;</xsl:text>
  		<xsl:text>        this.</xsl:text>
- 		<xsl:value-of select="istoe:fromLowerCase($service)"/>
+ 		<xsl:value-of select="jname:JavaVarName($service)"/>
  		<xsl:text> = </xsl:text>
- 		<xsl:value-of select="istoe:fromLowerCase($service)"/>
+ 		<xsl:value-of select="jname:JavaVarName($service)"/>
  		<xsl:text>;&#10;    }&#10;&#10;</xsl:text>
  		<xsl:apply-templates select="method" mode="controller"/>
  		<xsl:text>}&#10;</xsl:text>
@@ -447,7 +456,7 @@
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.entity.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 	</xsl:variable>
 	<xsl:value-of select="concat($importEntity,'Request;&#10;')"/>
 	<xsl:value-of select="concat($importEntity,'Response;&#10;')"/>
@@ -460,18 +469,18 @@
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.repository.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 	</xsl:variable>
 	<xsl:value-of select="concat($import,'Repository;&#10;')"/>
 </xsl:template>
 
 <xsl:template match="method" mode="interface">
 	<xsl:text>    </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Response </xsl:text>
-	<xsl:value-of select="@name"/>
+	<xsl:value-of select="jname:JavaVarName(@name)"/>
 	<xsl:text>(@NotNull </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Request request);&#10;</xsl:text>
 </xsl:template>
 
@@ -479,29 +488,29 @@
 	<xsl:value-of select="concat(concat('    @PostMapping(&quot;/',istoe:fromUpperCase(@name)),'&quot;)&#10;')"/>
 	<xsl:text>    @Timed&#10;</xsl:text>
 	<xsl:text>    public </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Response </xsl:text>
-	<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+	<xsl:value-of select="jname:JavaVarName(@name)"/>
 	<xsl:text>(@Valid @RequestBody </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Request  request) {&#10;</xsl:text>
 	<xsl:text>        return </xsl:text>
-	<xsl:value-of select="istoe:fromLowerCase(parent::service/@name)"/>
+	<xsl:value-of select="jname:JavaVarName(parent::service/@name)"/>
 	<xsl:text>Service.</xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaVarName(@name)"/>
 	<xsl:text>(request);&#10;    }&#10;</xsl:text>
 </xsl:template>
 
 <xsl:template  match="method" mode="serviceOverride">
 	<xsl:text>&#10;    @Override&#10;    public </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Response </xsl:text>
-	<xsl:value-of select="istoe:fromLowerCase(@name)"/>	
+	<xsl:value-of select="jname:JavaVarName(@name)"/>	
 	<xsl:text>(@NotNull </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Request request) {&#10;&#10;</xsl:text>	
 	<xsl:text>        log.info(&quot;</xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text> request: {}&quot;, request);&#10;&#10;</xsl:text>
 	<xsl:for-each select="procedure/param[@direction='in']">
 		<xsl:text>        </xsl:text>
@@ -510,27 +519,27 @@
 	</xsl:for-each>
 	<xsl:text>&#10;</xsl:text>
 	<xsl:text>        </xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text>Response response = </xsl:text>
-	<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+	<xsl:value-of select="jname:JavaVarName(@name)"/>
 	<xsl:text>Repository.</xsl:text>
-	<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+	<xsl:value-of select="jname:JavaVarName(@name)"/>
 	<xsl:text>( </xsl:text>
 	<xsl:for-each select="procedure/param[@direction='in']">
-		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
+		<xsl:value-of select="jname:JavaVarName(jname:oracleToJavaParamName(@name))"/>	
 		<xsl:if test="position()&lt;last()"><xsl:text>, </xsl:text></xsl:if>
 	</xsl:for-each>
 	<xsl:text> );&#10;</xsl:text>
 	<xsl:text>        log.info(&quot;</xsl:text>
-	<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text> response: {}&quot;, response);&#10;</xsl:text>	
 	<xsl:text>&#10;        return response;&#10;</xsl:text>
 	<xsl:text>    }&#10;</xsl:text>
 </xsl:template>
 
 <xsl:template match="method" mode="entity">
-	<xsl:variable name="entityRequestClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.entity'),concat(istoe:fromUpperCase(@name),'Request'))"/>
-	<xsl:variable name="entityResponseClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.entity'),concat(istoe:fromUpperCase(@name),'Response'))"/>	
+	<xsl:variable name="entityRequestClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.entity'),concat(jname:JavaClassName(@name),'Request'))"/>
+	<xsl:variable name="entityResponseClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.entity'),concat(jname:JavaClassName(@name),'Response'))"/>	
 	<xsl:value-of select="istoe:log(concat('generate ',$entityRequestClassFile))"/>
 	<redirect:write file="{$entityRequestClassFile}">
 		<xsl:value-of select="jname:packageLine(/application/@basePackage,/application/@name,'entity')"/>
@@ -540,7 +549,7 @@
 		<xsl:text>&#10;</xsl:text>
 		<xsl:value-of select="jname:defaultAnnatationLines('entityRequestClass')"/>
 		<xsl:text>public class </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Request {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/param[@direction='in']" mode="entityParamIn"/>
 		<xsl:text>}&#10;</xsl:text>
@@ -554,7 +563,7 @@
 		<xsl:text>&#10;</xsl:text>
 		<xsl:value-of select="jname:defaultAnnatationLines('entityResponseClass')"/>
 		<xsl:text>public class </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/param[@direction='out']" mode="entityParamOut"/>
 		<xsl:text>}&#10;</xsl:text>		
@@ -562,7 +571,7 @@
 </xsl:template>
 
 <xsl:template match="method" mode="repository">
-	<xsl:variable name="repositoryClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository'),concat(istoe:fromUpperCase(@name),'Repository'))"/>
+	<xsl:variable name="repositoryClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository'),concat(jname:JavaClassName(@name),'Repository'))"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$repositoryClassFile))"/>
 	<redirect:write file="{$repositoryClassFile}">
 		<xsl:value-of select="jname:packageLine(/application/@basePackage,/application/@name,'repository')"/>
@@ -572,18 +581,18 @@
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.entity.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response;&#10;</xsl:text>
 		<xsl:text>/*Добавить импорты согласно типам параметров*/&#10;</xsl:text>
 		<xsl:apply-templates select="procedure" mode="importType"/>
 		<xsl:text>&#10;</xsl:text>
 		<xsl:text>public interface </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Repository {&#10;</xsl:text>
 		<xsl:text>    </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response </xsl:text>
-		<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+		<xsl:value-of select="jname:JavaVarName(@name)"/>
 		<xsl:text>(&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='in']">
 			<xsl:text>                </xsl:text>
@@ -601,7 +610,7 @@
 </xsl:template>
 
 <xsl:template match="method" mode="repositoryImpl">
-	<xsl:variable name="repositoryImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository.impl'),concat(istoe:fromUpperCase(@name),'ImplRepository'))"/>
+	<xsl:variable name="repositoryImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository.impl'),concat(jname:JavaClassName(@name),'ImplRepository'))"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$repositoryImplClassFile))"/>
 	<redirect:write file="{$repositoryImplClassFile}">
 		<xsl:value-of select="jname:packageLine(/application/@basePackage,/application/@name,'repository.impl')"/>
@@ -613,22 +622,22 @@
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.entity.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response;&#10;</xsl:text>
 		<xsl:text>import </xsl:text>
 		<xsl:value-of select="/application/@basePackage"/>
 		<xsl:text>.</xsl:text>
 		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
 		<xsl:text>.repository.</xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Repository;&#10;</xsl:text>		
 		<xsl:text>&#10;</xsl:text>		
 		<xsl:value-of select="jname:defaultAnnatationLines('repositoryImplClass')"/>
 		<xsl:text>&#10;</xsl:text>	
 		<xsl:text>public class </xsl:text>
-		<xsl:value-of select="concat(istoe:fromUpperCase(@name),'RepositoryImpl')"/>
+		<xsl:value-of select="concat(jname:JavaClassName(@name),'RepositoryImpl')"/>
 		<xsl:text> implements </xsl:text>
-		<xsl:value-of select="concat(istoe:fromUpperCase(@name),'Repository')"/>
+		<xsl:value-of select="concat(jname:JavaClassName(@name),'Repository')"/>
 		<xsl:text> {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure" mode="constant"/>	
     	<xsl:text>    private final JdbcTemplate jdbcTemplate;&#10;</xsl:text>
@@ -636,10 +645,12 @@
 		<xsl:text>&#10;</xsl:text>
     	<xsl:text>    @Autowired&#10;</xsl:text>
 		<xsl:text>    public </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>RepositoryImpl(JdbcTemplate jdbcTemplate) {&#10;</xsl:text>
 		<xsl:text>        this.jdbcTemplate = jdbcTemplate;&#10;</xsl:text>
 		<xsl:text>        this.simpleJdbcCall = new SimpleJdbcCall(jdbcTemplate)&#10;</xsl:text>
+		<xsl:text>                .withoutProcedureColumnMetaDataAccess();&#10;</xsl:text>
+		<xsl:text>                .withNamedBinding()&#10;</xsl:text>
 		<xsl:text>                .withSchemaName(SCHEMA)&#10;</xsl:text>
 		<xsl:text>                .withCatalogName(PACKAGE)&#10;</xsl:text>
 		<xsl:text>                .withProcedureName(PROCEDURE)&#10;</xsl:text>
@@ -650,16 +661,14 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 		</xsl:for-each>
 		<xsl:text>                )&#10;</xsl:text>
-		<xsl:text>                .withNamedBinding()&#10;</xsl:text>
-		<xsl:text>                .withoutProcedureColumnMetaDataAccess();&#10;</xsl:text>
 		<xsl:text>    }&#10;</xsl:text>
 		<xsl:text>&#10;</xsl:text>
 	<xsl:text>    @Transactional&#10;</xsl:text>
 	<xsl:text>    @Override&#10;</xsl:text>
 	<xsl:text>    public </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response </xsl:text>
-		<xsl:value-of select="istoe:fromLowerCase(@name)"/>
+		<xsl:value-of select="jname:JavaVarName(@name)"/>
 		<xsl:text>(&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='in']">
 		<xsl:text>                </xsl:text>
@@ -699,7 +708,7 @@
 		</xsl:for-each>
 		<xsl:text>);&#10;</xsl:text>
 		<xsl:text>        return new </xsl:text>
-		<xsl:value-of select="istoe:fromUpperCase(@name)"/>
+		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response()&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
 			<xsl:text>                .set</xsl:text>
