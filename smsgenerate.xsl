@@ -314,20 +314,24 @@
 <xsl:template match="/application">
 	<xsl:variable name="applicationClassFile" select="jname:javaFileName(@basePath,concat(concat(@basePackage,'.'),istoe:translate(@name,'false')),concat(@name,'App'))"/>
 	<xsltext>&lt;istoe&gt;&#10;</xsltext>
-	<xsl:value-of select="istoe:log('Istoe auto generate Spring Boot Application version 1.0b')"/>
-	<xsl:value-of select="istoe:log(concat('generate ',$applicationClassFile))"/>
-	<!-- Application Class File -->
-	<redirect:write file="{$applicationClassFile}">
-    	<xsl:value-of select="jname:packageLine(@basePackage,@name,'')"/>
-		<xsl:value-of select="jname:defaultImportLines('appClass')"/>		
-		<xsl:text>&#10;</xsl:text>
-		<xsl:value-of select="jname:defaultAnnatationLines('appClass')"/>
-		<xsl:text>public class </xsl:text><xsl:value-of select="@name"/><xsl:text>App {&#10;</xsl:text>
-		<xsl:text>    public static void main(String[] args) {&#10;</xsl:text>
-		<xsl:text>        SpringApplication.run(</xsl:text><xsl:value-of select="@name"/><xsl:text>App.class, args);&#10;</xsl:text>
-		<xsl:text>    }&#10;</xsl:text>
-		<xsl:text>}&#10;</xsl:text>
-    </redirect:write>
+	
+	<xsl:if test="@create = 'true'">
+        <xsl:value-of select="istoe:log('Istoe auto generate Spring Boot Application version 1.0b')"/>
+        <xsl:value-of select="istoe:log(concat('generate ',$applicationClassFile))"/>
+        <!-- Application Class File -->
+        <redirect:write file="{$applicationClassFile}">
+            <xsl:value-of select="jname:packageLine(@basePackage,@name,'')"/>
+            <xsl:value-of select="jname:defaultImportLines('appClass')"/>		
+            <xsl:text>&#10;</xsl:text>
+            <xsl:value-of select="jname:defaultAnnatationLines('appClass')"/>
+            <xsl:text>public class </xsl:text><xsl:value-of select="@name"/><xsl:text>App {&#10;</xsl:text>
+            <xsl:text>    public static void main(String[] args) {&#10;</xsl:text>
+            <xsl:text>        SpringApplication.run(</xsl:text><xsl:value-of select="@name"/><xsl:text>App.class, args);&#10;</xsl:text>
+            <xsl:text>    }&#10;</xsl:text>
+            <xsl:text>}&#10;</xsl:text>
+        </redirect:write>
+	</xsl:if>
+	
 	<xsl:apply-templates select="service"/>
 	<xsltext>&lt;/istoe&gt;&#10;</xsltext>
 </xsl:template>
