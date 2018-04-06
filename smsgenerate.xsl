@@ -350,9 +350,9 @@
     	<xsl:value-of select="jname:defaultImportLines('serviceClass')"/>	
 		<xsl:apply-templates select="method" mode="importEntity"/>
 		<xsl:text>&#10;</xsl:text>
-		<xsl:text>public interface </xsl:text><xsl:value-of select="@name"/><xsl:text>Service {&#10;</xsl:text>
+		<xsl:text>public interface </xsl:text><xsl:value-of select="@name"/><xsl:text>Service {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="method" mode="interface"/>
-		<xsl:text>}&#10;</xsl:text>
+		<xsl:text>&#10;}&#10;</xsl:text>
 	</redirect:write>
 	<xsl:value-of select="istoe:log(concat('generate ',$serviceImplClassFile))"/>
 	<!-- Service Impl Class File -->
@@ -381,7 +381,7 @@
  			<xsl:value-of select="jname:JavaClassName(@name)"/>
  			<xsl:text>Repository </xsl:text>
  			<xsl:value-of select="jname:JavaVarName(@name)"/>
- 			<xsl:text>Repository;&#10;</xsl:text>
+ 			<xsl:text>Repository;&#10;&#10;</xsl:text>
  		</xsl:for-each>
 		<xsl:text>    @Autowired&#10;</xsl:text>
 		<xsl:text>    public </xsl:text>
@@ -395,7 +395,7 @@
  			<xsl:text>Repository</xsl:text>
  			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 		</xsl:for-each>
-		<xsl:text>) {&#10;</xsl:text>
+		<xsl:text>&#10;    ) {&#10;</xsl:text>
 		<xsl:for-each select="method">
 			<xsl:text>        this.</xsl:text>
 			<xsl:value-of select="jname:JavaVarName(@name)"/>
@@ -427,13 +427,13 @@
  		<xsl:text>@RequestMapping("/api/</xsl:text>	
  		<xsl:value-of select="istoe:translate(@name,'false')"/>
  		<xsl:text>")&#10;</xsl:text>	
-		<xsl:text>public class </xsl:text><xsl:value-of select="@name"/><xsl:text>Controller {&#10;</xsl:text>
+		<xsl:text>public class </xsl:text><xsl:value-of select="@name"/><xsl:text>Controller {&#10;&#10;</xsl:text>
  		<xsl:text>    private final </xsl:text>
  		<xsl:variable name="service" select="concat(@name,'Service')"/>
  		<xsl:value-of select="$service"/>
  		<xsl:text> </xsl:text>
  		<xsl:value-of select="jname:JavaVarName($service)"/>
- 		<xsl:text>;&#10;</xsl:text>
+ 		<xsl:text>;&#10;&#10;</xsl:text>
  		<xsl:text>    @Autowired&#10;</xsl:text>
  		<xsl:text>    public </xsl:text>
  		<xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Controller(</xsl:text>
@@ -497,7 +497,7 @@
 	<xsl:value-of select="jname:JavaVarName(@name)"/>
 	<xsl:text>(@Valid @RequestBody </xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
-	<xsl:text>Request  request) {&#10;</xsl:text>
+	<xsl:text>Request request) {&#10;</xsl:text>
 	<xsl:text>        return </xsl:text>
 	<xsl:value-of select="jname:JavaVarName(parent::service/@name)"/>
 	<xsl:text>Service.</xsl:text>
@@ -512,7 +512,7 @@
 	<xsl:value-of select="jname:JavaVarName(@name)"/>	
 	<xsl:text>(@NotNull </xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
-	<xsl:text>Request request) {&#10;&#10;</xsl:text>	
+	<xsl:text>Request request) {&#10;</xsl:text>	
 	<xsl:text>        log.info(&quot;</xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text> request: {}&quot;, request);&#10;&#10;</xsl:text>
@@ -533,11 +533,11 @@
 		<xsl:value-of select="jname:JavaVarName(jname:oracleToJavaParamName(@name))"/>	
 		<xsl:if test="position()&lt;last()"><xsl:text>, </xsl:text></xsl:if>
 	</xsl:for-each>
-	<xsl:text> );&#10;</xsl:text>
+	<xsl:text> );&#10;&#10;</xsl:text>
 	<xsl:text>        log.info(&quot;</xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text> response: {}&quot;, response);&#10;</xsl:text>	
-	<xsl:text>&#10;        return response;&#10;</xsl:text>
+	<xsl:text>        return response;&#10;</xsl:text>
 	<xsl:text>    }&#10;</xsl:text>
 </xsl:template>
 
@@ -587,12 +587,12 @@
 		<xsl:text>.entity.</xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response;&#10;</xsl:text>
-		<xsl:text>/*Добавить импорты согласно типам параметров*/&#10;</xsl:text>
+		<xsl:text>&#10;</xsl:text>
 		<xsl:apply-templates select="procedure" mode="importType"/>
 		<xsl:text>&#10;</xsl:text>
 		<xsl:text>public interface </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
-		<xsl:text>Repository {&#10;</xsl:text>
+		<xsl:text>Repository {&#10;&#10;</xsl:text>
 		<xsl:text>    </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response </xsl:text>
@@ -608,7 +608,7 @@
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 			
 		</xsl:for-each>
-		<xsl:text>);&#10;</xsl:text>
+		<xsl:text>&#10;    );&#10;&#10;</xsl:text>
 		<xsl:text>}&#10;</xsl:text>
 	</redirect:write>
 </xsl:template>
@@ -619,7 +619,7 @@
 	<redirect:write file="{$repositoryImplClassFile}">
 		<xsl:value-of select="jname:packageLine(/application/@basePackage,/application/@name,'repository.impl')"/>
 		<xsl:value-of select="jname:defaultImportLines('repositoryImplClass')"/>
-		<xsl:text>/*Добавить импорты согласно типам параметров*/&#10;</xsl:text>
+		<xsl:text>&#10;</xsl:text>
 		<xsl:apply-templates select="procedure" mode="importType"/>		
 		<xsl:text>import </xsl:text>
 		<xsl:value-of select="/application/@basePackage"/>
@@ -683,8 +683,8 @@
 			<xsl:value-of select="jname:paramMethodFromOracle(@type,@name,@size)"/>
 			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
 		</xsl:for-each>
-		<xsl:text>)&#10;</xsl:text>
-		<xsl:text>    {&#10;</xsl:text>
+		<xsl:text>&#10;</xsl:text>
+		<xsl:text>    ) {&#10;</xsl:text>
 		<xsl:text>        MapSqlParameterSource params = new MapSqlParameterSource()&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='in']">
 			<xsl:text>                    </xsl:text>
