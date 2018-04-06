@@ -538,7 +538,7 @@
 	<xsl:text>            log.error("Database error: {}", e.getMessage(), e);&#10;</xsl:text>
 	<xsl:text>            response = new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response()&#10;</xsl:text>
 	<xsl:text>               .setResultCode(e.getResultCode())&#10;</xsl:text>
-	<xsl:text>               .setMessage(getMessage());&#10;</xsl:text>
+	<xsl:text>               .setMessage(e.getMessage());&#10;</xsl:text>
 	<xsl:text>        }&#10;</xsl:text>
 	<xsl:text>        log.info(&quot;</xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
@@ -620,7 +620,7 @@
 </xsl:template>
 
 <xsl:template match="method" mode="repositoryImpl">
-	<xsl:variable name="repositoryImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository.impl'),concat(jname:JavaClassName(@name),'ImplRepository'))"/>
+	<xsl:variable name="repositoryImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.repository.impl'),concat(jname:JavaClassName(@name),'RepositoryImpl'))"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$repositoryImplClassFile))"/>
 	<redirect:write file="{$repositoryImplClassFile}">
 		<xsl:value-of select="jname:packageLine(/application/@basePackage,/application/@name,'repository.impl')"/>
@@ -659,7 +659,7 @@
 		<xsl:text>RepositoryImpl(JdbcTemplate jdbcTemplate) {&#10;</xsl:text>
 		<xsl:text>        this.jdbcTemplate = jdbcTemplate;&#10;</xsl:text>
 		<xsl:text>        this.simpleJdbcCall = new SimpleJdbcCall(jdbcTemplate)&#10;</xsl:text>
-		<xsl:text>                .withoutProcedureColumnMetaDataAccess();&#10;</xsl:text>
+		<xsl:text>                .withoutProcedureColumnMetaDataAccess()&#10;</xsl:text>
 		<xsl:text>                .withNamedBinding()&#10;</xsl:text>
 		<xsl:text>                .withSchemaName(SCHEMA)&#10;</xsl:text>
 		<xsl:text>                .withCatalogName(PACKAGE)&#10;</xsl:text>
@@ -668,9 +668,10 @@
 		<xsl:for-each select="procedure/param">
 			<xsl:text>                        </xsl:text>
 			<xsl:value-of select="jname:newSqlParameter(@name,@type,@direction)"/>
-			<xsl:if test="position()&lt;last()"><xsl:text>,&#10;</xsl:text></xsl:if>
+			<xsl:if test="position()&lt;last()"><xsl:text>,</xsl:text></xsl:if>
+			<xsl:text>&#10;</xsl:text>
 		</xsl:for-each>
-		<xsl:text>                )&#10;</xsl:text>
+		<xsl:text>                );&#10;</xsl:text>
 		<xsl:text>    }&#10;</xsl:text>
 		<xsl:text>&#10;</xsl:text>
 	<xsl:text>    @Transactional&#10;</xsl:text>
