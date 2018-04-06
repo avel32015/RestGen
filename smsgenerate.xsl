@@ -516,24 +516,30 @@
 	<xsl:text>        log.info(&quot;</xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text> request: {}&quot;, request);&#10;&#10;</xsl:text>
+	
 	<xsl:for-each select="procedure/param[@direction='in']">
 		<xsl:text>        </xsl:text>
 		<xsl:value-of select="jname:requestGetParam(@name,@type,@size)"/>
 		<xsl:text>&#10;</xsl:text>
 	</xsl:for-each>
+	
 	<xsl:text>&#10;</xsl:text>
-	<xsl:text>        </xsl:text>
-	<xsl:value-of select="jname:JavaClassName(@name)"/>
-	<xsl:text>Response response = </xsl:text>
-	<xsl:value-of select="jname:JavaVarName(@name)"/>
-	<xsl:text>Repository.</xsl:text>
-	<xsl:value-of select="jname:JavaVarName(@name)"/>
-	<xsl:text>( </xsl:text>
+	<xsl:text>        </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response response;&#10;</xsl:text>
+	<xsl:text>        try {&#10;</xsl:text>
+	<xsl:text>            response = </xsl:text><xsl:value-of select="jname:JavaVarName(@name)"/>
+	<xsl:text>Repository.</xsl:text><xsl:value-of select="jname:JavaVarName(@name)"/><xsl:text>( </xsl:text>
+
 	<xsl:for-each select="procedure/param[@direction='in']">
 		<xsl:value-of select="jname:JavaVarName(jname:oracleToJavaParamName(@name))"/>	
 		<xsl:if test="position()&lt;last()"><xsl:text>, </xsl:text></xsl:if>
-	</xsl:for-each>
-	<xsl:text> );&#10;&#10;</xsl:text>
+	</xsl:for-each><xsl:text> );&#10;</xsl:text>
+
+	<xsl:text>        } catch (RepositoryException e) {&#10;</xsl:text>
+	<xsl:text>            log.error("Database error: {}", e.getMessage(), e);&#10;</xsl:text>
+	<xsl:text>            response = new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response()&#10;</xsl:text>
+	<xsl:text>               .setResultCode(e.getResultCode())&#10;</xsl:text>
+	<xsl:text>               .setMessage(getMessage());&#10;</xsl:text>
+	<xsl:text>        }&#10;</xsl:text>
 	<xsl:text>        log.info(&quot;</xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
 	<xsl:text> response: {}&quot;, response);&#10;</xsl:text>	
