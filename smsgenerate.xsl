@@ -54,6 +54,7 @@
 		
 		<item type="entityRequestClass">import com.fasterxml.jackson.annotation.JsonFormat;&#10;</item>
 		<item type="entityRequestClass">import com.fasterxml.jackson.annotation.JsonProperty;&#10;</item>
+		<item type="entityRequestClass">import io.swagger.annotations.ApiModelProperty;&#10;</item>
 		<item type="entityRequestClass">import lombok.Data;&#10;</item>
 		<item type="entityRequestClass">import lombok.NoArgsConstructor;&#10;</item>
 		<item type="entityRequestClass">import lombok.experimental.Accessors;&#10;</item>
@@ -62,15 +63,20 @@
 		<item type="entityRequestClass">import org.hibernate.validator.constraints.Length;&#10;</item>
 		<item type="entityRequestClass">import org.hibernate.validator.constraints.ScriptAssert;&#10;</item>
 		<item type="entityRequestClass">import org.hibernate.validator.valuehandling.UnwrapValidatedValue;&#10;</item>
+		<item type="entityRequestClass">import ru.tinkoff.tpmi.validation.ValidNumbers;&#10;</item>
+
 		<item type="entityRequestClass">import java.math.BigDecimal;&#10;</item>
 		<item type="entityRequestClass">import java.util.Date;&#10;</item>
 		
 		<item type="entityResponseClass">import com.fasterxml.jackson.annotation.JsonInclude;&#10;</item>
+		<item type="entityResponseClass">import com.fasterxml.jackson.annotation.JsonFormat;&#10;</item>
 		<item type="entityResponseClass">import com.fasterxml.jackson.annotation.JsonProperty;&#10;</item>
+		<item type="entityResponseClass">import io.swagger.annotations.ApiModelProperty;&#10;</item>
 		<item type="entityResponseClass">import lombok.Data;&#10;</item>
 		<item type="entityResponseClass">import lombok.NoArgsConstructor;&#10;</item>
 		<item type="entityResponseClass">import lombok.experimental.Accessors;&#10;</item>
 		<item type="entityResponseClass">import org.hibernate.validator.constraints.Length;&#10;</item>
+		<item type="entityResponseClass">import ru.tinkoff.tpmi.validation.ValidNumbers;&#10;</item>
 		<item type="entityResponseClass">import static com.fasterxml.jackson.annotation.JsonInclude.Include;&#10;</item>
 		<item type="entityResponseClass">import javax.validation.constraints.NotNull;&#10;</item>
 		<item type="entityResponseClass">import java.math.BigDecimal;&#10;</item>
@@ -111,13 +117,16 @@
                     <xsl:otherwise><xsl:text>BigDecimal</xsl:text></xsl:otherwise>
                 </xsl:choose>
             </xsl:when>
+            <xsl:when test="$oracleType='integer'"><xsl:text>Integer</xsl:text></xsl:when>
             <xsl:when test="$oracleType='numeric'"><xsl:text>Long</xsl:text></xsl:when>
             <xsl:when test="$oracleType='varchar2'"><xsl:text>String</xsl:text></xsl:when>
+            <xsl:when test="$oracleType='string'"><xsl:text>String</xsl:text></xsl:when>
             <xsl:when test="$oracleType='timestamp'"><xsl:text>Date</xsl:text></xsl:when>
+            <xsl:when test="$oracleType='date'"><xsl:text>Date</xsl:text></xsl:when>
             <xsl:when test="$oracleType='array'"><xsl:value-of select="concat($class, '[]')"/></xsl:when>
             <xsl:when test="$oracleType='cursor'"><xsl:value-of select="concat($class, '[]')"/></xsl:when>
             <xsl:when test="$oracleType='struct'"><xsl:value-of select="$class"/></xsl:when>
-            <xsl:otherwise><xsl:text>void</xsl:text></xsl:otherwise>
+            <xsl:otherwise><xsl:value-of select="$oracleType"/></xsl:otherwise>
 		</xsl:choose>
 	</func:result>
 </func:function>
@@ -625,6 +634,7 @@
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Request {&#10;&#10;</xsl:text>
+		<xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/param[@direction='in']" mode="entityParamIn"/>
 		<xsl:text>}&#10;</xsl:text>
 	</redirect:write>
@@ -639,6 +649,7 @@
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response {&#10;&#10;</xsl:text>
+		<xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/param[@direction='out']" mode="entityParamOut"/>
 		<xsl:apply-templates select="structure" mode="entityOut"/>
 		<xsl:text>}&#10;</xsl:text>		
@@ -853,7 +864,11 @@
 <xsl:template match="param" mode="entityParamIn">
 	<xsl:if test="@direction='in'">
         <xsl:variable name="reqName" select="java:replaceFirst(istoe:translate(@name), '^[IO]{1,2}_', '')"/>
+        <xsl:variable name="ident">
+            <!--xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if-->
+		</xsl:variable>
         
+        <xsl:value-of select="$ident"/>
 		<xsl:text>    @JsonProperty(value = &quot;</xsl:text><xsl:value-of select="$reqName"/>
 		<xsl:text>&quot;, required = </xsl:text>
 		<xsl:choose>
@@ -861,10 +876,29 @@
 			<xsl:otherwise><xsl:text>true</xsl:text></xsl:otherwise>
 		</xsl:choose><xsl:text>)&#10;</xsl:text>
 		
+		<xsl:if test="@type = 'date' or @type = 'timestamp'">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_PATTERN)&#10;</xsl:text>
+		</xsl:if>
+		
+		<xsl:if test="@description != ''">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @ApiModelProperty(value = &quot;</xsl:text><xsl:value-of select="@description"/><xsl:text>&quot;)&#10;</xsl:text>
+		</xsl:if>
+		
 		<xsl:if test="not (@null)">
+            <xsl:value-of select="$ident"/>
 			<xsl:text>    @NotNull(message = &quot;Не указано поле </xsl:text><xsl:value-of select="$reqName"/><xsl:text>&quot;)&#10;</xsl:text>
 		</xsl:if>
 		
+		<xsl:if test="@valid != ''">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @ValidNumbers(value = {</xsl:text><xsl:value-of select="@valid"/>
+            <xsl:text>}, message = &quot;Неверное значение поля </xsl:text><xsl:value-of select="$reqName"/>
+            <xsl:text> (</xsl:text><xsl:value-of select="@valid"/><xsl:text>)&quot;)&#10;</xsl:text>
+		</xsl:if>
+		
+        <xsl:value-of select="$ident"/>
 		<xsl:text>    private </xsl:text>
 		<xsl:value-of select="jname:oracleToJavaType(@type, concat(@struct, @size))"/>
 		<xsl:text> </xsl:text>
@@ -874,7 +908,7 @@
 </xsl:template>
 
 <xsl:template match="param | attr" mode="entityParamOut">
-	<xsl:if test="@direction='out'">
+	<!--xsl:if test="@direction='out'"-->
         <xsl:variable name="reqName" select="java:replaceFirst(istoe:translate(@name), '^[IO]{1,2}_', '')"/>
         <xsl:variable name="ident">
             <xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if>
@@ -887,13 +921,30 @@
 			<xsl:otherwise><xsl:text>true</xsl:text></xsl:otherwise>
 		</xsl:choose><xsl:text>)&#10;</xsl:text>
 		
+		<xsl:if test="@type = 'date' or @type = 'timestamp'">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_PATTERN)&#10;</xsl:text>
+		</xsl:if>
+		
+		<xsl:if test="@description != ''">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @ApiModelProperty(value = &quot;</xsl:text><xsl:value-of select="@description"/><xsl:text>&quot;)&#10;</xsl:text>
+		</xsl:if>
+		
+		<xsl:if test="@valid != ''">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @ValidNumbers(value = {</xsl:text><xsl:value-of select="@valid"/>
+            <xsl:text>}, message = &quot;Неверное значение поля </xsl:text><xsl:value-of select="$reqName"/>
+            <xsl:text> (</xsl:text><xsl:value-of select="@valid"/><xsl:text>)&quot;)&#10;</xsl:text>
+		</xsl:if>
+		
 		<xsl:value-of select="$ident"/>
 		<xsl:text>    private </xsl:text>
 		<xsl:value-of select="jname:oracleToJavaType(@type, concat(@struct, @size))"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
 		<xsl:text>;&#10;&#10;</xsl:text>
-	</xsl:if>
+	<!--/xsl:if-->
  </xsl:template>
 
 <xsl:template match="structure" mode="entityOut">
