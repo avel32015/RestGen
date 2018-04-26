@@ -205,9 +205,12 @@
 		<xsl:value-of select="istoe:translate($name)"/>
 		<xsl:text>, Types.</xsl:text>
 		<xsl:if test="$type='number'"><xsl:text>INTEGER</xsl:text></xsl:if>
+		<xsl:if test="$type='integer'"><xsl:text>INTEGER</xsl:text></xsl:if>
 		<xsl:if test="$type='numeric'"><xsl:text>NUMERIC</xsl:text></xsl:if>
 		<xsl:if test="$type='varchar2'"><xsl:text>VARCHAR</xsl:text></xsl:if>
+		<xsl:if test="$type='string'"><xsl:text>VARCHAR</xsl:text></xsl:if>
 		<xsl:if test="$type='timestamp'"><xsl:text>TIMESTAMP</xsl:text></xsl:if>
+		<xsl:if test="$type='date'"><xsl:text>TIMESTAMP</xsl:text></xsl:if>
         <xsl:if test="$type='array'"><xsl:text>ARRAY, SCHEMA+".</xsl:text><xsl:value-of select="istoe:translate($subtype)"/><xsl:text>"</xsl:text></xsl:if>
         <xsl:if test="$type='cursor'"><xsl:text>REF_CURSOR, this.extractor</xsl:text><xsl:value-of select="jname:JavaClassName($subtype)"/></xsl:if>
         <xsl:if test="$type='struct'"><xsl:text>STRUCT</xsl:text></xsl:if>
@@ -569,7 +572,7 @@
 </xsl:template>
 
 <xsl:template match="method" mode="controller">
-	<xsl:value-of select="concat(concat('    @PostMapping(&quot;/',istoe:fromUpperCase(@name)),'&quot;)&#10;')"/>
+	<xsl:value-of select="concat(concat('    @PostMapping(&quot;/', istoe:translate(@name, 'false')), '&quot;)&#10;')"/>
 	<xsl:text>    @Timed&#10;</xsl:text>
 	<xsl:text>    public </xsl:text>
 	<xsl:value-of select="jname:JavaClassName(@name)"/>
@@ -896,6 +899,13 @@
             <xsl:text>    @ValidNumbers(value = {</xsl:text><xsl:value-of select="@valid"/>
             <xsl:text>}, message = &quot;Неверное значение поля </xsl:text><xsl:value-of select="$reqName"/>
             <xsl:text> (</xsl:text><xsl:value-of select="@valid"/><xsl:text>)&quot;)&#10;</xsl:text>
+		</xsl:if>
+		
+		<xsl:if test="@pattern != ''">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @Pattern(regexp = "</xsl:text><xsl:value-of select="@pattern"/>
+            <xsl:text>", message = &quot;Неверное значение поля </xsl:text><xsl:value-of select="$reqName"/>
+            <xsl:text> (шаблон '</xsl:text><xsl:value-of select="@pattern"/><xsl:text>')&quot;)&#10;</xsl:text>
 		</xsl:if>
 		
         <xsl:value-of select="$ident"/>
