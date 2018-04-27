@@ -435,9 +435,11 @@
 </xsl:template>
 
 <xsl:template match="service">
-	<xsl:variable name="serviceInterfaceClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service'),concat(@name,'Service'))"/>
-	<xsl:variable name="serviceImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service.impl'),concat(@name,'ServiceImpl'))"/>
-	<xsl:variable name="controllerClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.controller'),concat(@name,'Controller'))"/>
+    <xsl:variable name="className" select="jname:JavaClassName(@name)"/>
+	<xsl:variable name="service" select="concat($className,'Service')"/>
+	<xsl:variable name="serviceInterfaceClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service'),$service)"/>
+	<xsl:variable name="serviceImplClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.service.impl'),concat($service,'Impl'))"/>
+	<xsl:variable name="controllerClassFile" select="jname:javaFileName(/application/@basePath,concat(concat(concat(/application/@basePackage,'.'),istoe:translate(/application/@name,'false')),'.controller'),concat($className,'Controller'))"/>
 	
 	<xsl:apply-templates select="method" mode="entity"/>
 	<xsl:value-of select="istoe:log(concat('generate ',$serviceInterfaceClassFile))"/>
@@ -448,7 +450,7 @@
     	<xsl:value-of select="jname:defaultImportLines('serviceClass')"/>	
 		<xsl:apply-templates select="method" mode="importEntity"/>
 		<xsl:text>&#10;</xsl:text>
-		<xsl:text>public interface </xsl:text><xsl:value-of select="@name"/><xsl:text>Service {&#10;&#10;</xsl:text>
+		<xsl:text>public interface </xsl:text><xsl:value-of select="$service"/><xsl:text> {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="method" mode="interface"/>
 		<xsl:text>&#10;}&#10;</xsl:text>
 	</redirect:write>
@@ -459,18 +461,13 @@
     	<xsl:value-of select="jname:defaultImportLines('serviceImplClass')"/>	
     	<xsl:apply-templates select="method" mode="importEntity"/>
     	<xsl:apply-templates select="method" mode="importRepository"/>
-		<xsl:text>import </xsl:text>
-		<xsl:value-of select="/application/@basePackage"/>
-		<xsl:text>.</xsl:text>
-		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
-		<xsl:text>.service.</xsl:text>
-		<xsl:value-of select="jname:JavaClassName(@name)"/>
-		<xsl:text>Service;&#10;</xsl:text>
+		<xsl:text>import </xsl:text><xsl:value-of select="/application/@basePackage"/><xsl:text>.</xsl:text><xsl:value-of select="istoe:translate(/application/@name,'false')"/>
+		<xsl:text>.service.</xsl:text><xsl:value-of select="$service"/><xsl:text>;&#10;</xsl:text>
 		<xsl:apply-templates select="method/procedure" mode="importType"/>	  
  		<xsl:text>&#10;</xsl:text>
  		<xsl:value-of select="jname:defaultAnnatationLines('serviceImplClass')"/>
- 		<xsl:text>public class </xsl:text><xsl:value-of select="concat(@name,'ServiceImpl')"/>
- 		<xsl:text> implements </xsl:text><xsl:value-of select="concat(@name,'Service')"/><xsl:text> {&#10;&#10;</xsl:text>
+ 		<xsl:text>public class </xsl:text><xsl:value-of select="concat($service,'Impl')"/>
+ 		<xsl:text> implements </xsl:text><xsl:value-of select="$service"/><xsl:text> {&#10;&#10;</xsl:text>
  		<xsl:for-each select="method">
  			<xsl:text>    private final </xsl:text>
  			<xsl:value-of select="jname:JavaClassName(@name)"/>
@@ -480,7 +477,7 @@
  		</xsl:for-each>
 		<xsl:text>    @Autowired&#10;</xsl:text>
 		<xsl:text>    public </xsl:text>
-		<xsl:value-of select="concat(@name,'ServiceImpl')"/>
+		<xsl:value-of select="concat($service,'Impl')"/>
 		<xsl:text>(&#10;</xsl:text>
 		<xsl:for-each select="method">
 			<xsl:text>            </xsl:text>
@@ -510,29 +507,23 @@
  	   	<xsl:value-of select="jname:packageLine(/application/@basePackage,/application/@name,'controller')"/>
  		<xsl:value-of select="jname:defaultImportLines('controllerClass')"/>
  		<xsl:apply-templates select="method" mode="importEntity"/>
- 		<xsl:text>import </xsl:text>
-		<xsl:value-of select="/application/@basePackage"/>
-		<xsl:text>.</xsl:text>
-		<xsl:value-of select="istoe:translate(/application/@name,'false')"/>
-		<xsl:text>.service.</xsl:text>
-		<xsl:value-of select="jname:JavaClassName(@name)"/>
-		<xsl:text>Service;&#10;</xsl:text>  
+ 		<xsl:text>import </xsl:text><xsl:value-of select="/application/@basePackage"/><xsl:text>.</xsl:text><xsl:value-of select="istoe:translate(/application/@name,'false')"/>
+		<xsl:text>.service.</xsl:text><xsl:value-of select="$service"/><xsl:text>;&#10;</xsl:text>  
  		<xsl:text>&#10;</xsl:text>
  		<xsl:value-of select="jname:defaultAnnatationLines('controllerClass')"/>
  		<xsl:text>@RequestMapping("/api/</xsl:text>	
  		<xsl:value-of select="istoe:translate(@name,'false')"/>
  		<xsl:text>")&#10;</xsl:text>	
-		<xsl:text>public class </xsl:text><xsl:value-of select="@name"/><xsl:text>Controller {&#10;&#10;</xsl:text>
+		<xsl:text>public class </xsl:text><xsl:value-of select="$className"/><xsl:text>Controller {&#10;&#10;</xsl:text>
  		<xsl:text>    private final </xsl:text>
- 		<xsl:variable name="service" select="concat(@name,'Service')"/>
  		<xsl:value-of select="$service"/>
  		<xsl:text> </xsl:text>
  		<xsl:value-of select="jname:JavaVarName($service)"/>
  		<xsl:text>;&#10;&#10;</xsl:text>
  		<xsl:text>    @Autowired&#10;</xsl:text>
  		<xsl:text>    public </xsl:text>
- 		<xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Controller(</xsl:text>
- 		<xsl:value-of select="jname:JavaClassName($service)"/>
+ 		<xsl:value-of select="$className"/><xsl:text>Controller(</xsl:text>
+ 		<xsl:value-of select="$service"/>
  		<xsl:text> </xsl:text>
  		<xsl:value-of select="jname:JavaVarName($service)"/>
  		<xsl:text>) {&#10;</xsl:text>
