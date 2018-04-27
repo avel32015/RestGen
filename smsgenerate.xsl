@@ -33,6 +33,8 @@
 		<item type="controllerClass">import javax.validation.Valid;&#10;</item>
 		<item type="repositoryClass">import org.jetbrains.annotations.NotNull;&#10;</item>
 		<item type="repositoryClass">import org.jetbrains.annotations.Nullable;&#10;</item>
+		<item type="repositoryClass">import java.math.BigDecimal;&#10;</item>
+		<item type="repositoryClass">import java.util.Date;&#10;</item>
 		<item type="repositoryImplClass">import lombok.extern.slf4j.Slf4j;&#10;</item>
 		<item type="repositoryImplClass">import org.jetbrains.annotations.NotNull;&#10;</item>
 		<item type="repositoryImplClass">import org.jetbrains.annotations.Nullable;&#10;</item>
@@ -46,9 +48,11 @@
 		<item type="repositoryImplClass">import org.springframework.jdbc.core.simple.SimpleJdbcCall;&#10;</item>
 		<item type="repositoryImplClass">import org.springframework.stereotype.Repository;&#10;</item>
 		<item type="repositoryImplClass">import org.springframework.transaction.annotation.Transactional;&#10;</item>
+		<item type="repositoryImplClass">import java.math.BigDecimal;&#10;</item>
 		<item type="repositoryImplClass">import java.sql.ResultSet;&#10;</item>
 		<item type="repositoryImplClass">import java.sql.SQLException;&#10;</item>
 		<item type="repositoryImplClass">import java.sql.Types;&#10;</item>
+		<item type="repositoryImplClass">import java.util.Date;&#10;</item>
 		<item type="repositoryImplClass">import java.util.Map;&#10;</item>
 		<item type="repositoryImplClass">import java.util.List;&#10;</item>
 		
@@ -186,8 +190,9 @@
 	<xsl:param name="name"/>
 	<xsl:param name="source"/>
 	<func:result>
+        <xsl:variable name="reqName" select="jname:oracleToStaticName($name)"/>
 		<xsl:text>    private static final String </xsl:text>
-		<xsl:value-of select="istoe:translate($name)"/>
+		<xsl:value-of select="istoe:translate($reqName)"/>
 		<xsl:text> = "</xsl:text>
 		<xsl:value-of select="istoe:ifEmpty($source,$name)"/>
 		<xsl:text>";&#10;</xsl:text>
@@ -202,7 +207,7 @@
 	<func:result>
 		<xsl:if test="$direction='in'"><xsl:text>new SqlParameter(</xsl:text></xsl:if>
 		<xsl:if test="$direction='out'"><xsl:text>new SqlOutParameter(</xsl:text></xsl:if>
-		<xsl:value-of select="istoe:translate($name)"/>
+		<xsl:value-of select="jname:oracleToStaticName($name)"/>
 		<xsl:text>, Types.</xsl:text>
 		<xsl:if test="$type='number'"><xsl:text>INTEGER</xsl:text></xsl:if>
 		<xsl:if test="$type='integer'"><xsl:text>INTEGER</xsl:text></xsl:if>
@@ -223,7 +228,7 @@
 	<xsl:param name="name"/>
 	<func:result>
 	<xsl:text>.addValue(</xsl:text>
-	<xsl:value-of select="istoe:translate($name)"/>
+	<xsl:value-of select="jname:oracleToStaticName($name)"/>
 	<xsl:text>, </xsl:text>
 	<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName($name))"/>
 	<xsl:text>)</xsl:text>
@@ -300,19 +305,26 @@
             <xsl:otherwise>
                 <xsl:value-of select="$type"/><xsl:text> </xsl:text><xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName($name))"/>
                 <xsl:text> = (</xsl:text><xsl:value-of select="$type"/><xsl:text>) result.get(</xsl:text>
-                <xsl:value-of select="istoe:translate($name)"/><xsl:text>);&#10;</xsl:text>
+                <xsl:value-of select="jname:oracleToStaticName($name)"/><xsl:text>);&#10;</xsl:text>
             </xsl:otherwise>
         </xsl:choose>
 	</func:result>
 </func:function>
                       
 <func:function name="jname:oracleToJavaParamName">
-	<xsl:param name="str"/>
-	<xsl:variable name="param" select="java:replaceFirst(string($str), '^[IiOo]{1,2}_', '')"/>
+	<xsl:param name="name"/>
 	<func:result>
-		<xsl:value-of select="jname:JavaClassName($param)"></xsl:value-of>
+		<xsl:value-of select="jname:JavaClassName(java:replaceFirst(string($name), '^[IiOo]{1,2}_', ''))"></xsl:value-of>
 	</func:result>
 </func:function>
+
+<func:function name="jname:oracleToStaticName">
+	<xsl:param name="name"/>
+	<func:result>
+		<xsl:value-of select="java:replaceFirst(istoe:translate(string($name)), '^[IiOo]{1,2}_', '')"/>
+	</func:result>
+</func:function>
+
 
 <func:function name="jname:paramMethodFromOracle">
 	<xsl:param name="oracleType"/>
@@ -653,6 +665,8 @@
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response {&#10;&#10;</xsl:text>
 		<xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
+		<xsl:text>    private static final int SUCCESS_CODE = 0;&#10;</xsl:text>
+		<xsl:text>    private static final int MESSAGE_LIMIT = 4000;&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/param[@direction='out']" mode="entityParamOut"/>
 		<xsl:apply-templates select="structure" mode="entityOut"/>
 		<xsl:text>}&#10;</xsl:text>		
@@ -723,6 +737,7 @@
 		<xsl:text> implements </xsl:text><xsl:value-of select="concat(jname:JavaClassName(@name),'Repository')"/><xsl:text> {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure" mode="constant"/>	
 		<xsl:apply-templates select="structure" mode="constant"/>	
+    	<xsl:text>    @SuppressWarnings("unused")&#10;</xsl:text>
     	<xsl:text>    private final JdbcTemplate jdbcTemplate;&#10;</xsl:text>
    		<xsl:text>    private final SimpleJdbcCall jdbcCall;&#10;</xsl:text>
 		<xsl:text>&#10;</xsl:text>
@@ -866,7 +881,7 @@
 
 <xsl:template match="param" mode="entityParamIn">
 	<xsl:if test="@direction='in'">
-        <xsl:variable name="reqName" select="java:replaceFirst(istoe:translate(@name), '^[IO]{1,2}_', '')"/>
+        <xsl:variable name="reqName" select="jname:oracleToStaticName(@name)"/>
         <xsl:variable name="ident">
             <!--xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if-->
 		</xsl:variable>
@@ -919,7 +934,7 @@
 
 <xsl:template match="param | attr" mode="entityParamOut">
 	<!--xsl:if test="@direction='out'"-->
-        <xsl:variable name="reqName" select="java:replaceFirst(istoe:translate(@name), '^[IO]{1,2}_', '')"/>
+        <xsl:variable name="reqName" select="jname:oracleToStaticName(@name)"/>
         <xsl:variable name="ident">
             <xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if>
 		</xsl:variable>
@@ -948,11 +963,19 @@
             <xsl:text> (</xsl:text><xsl:value-of select="@valid"/><xsl:text>)&quot;)&#10;</xsl:text>
 		</xsl:if>
 		
+		<xsl:if test="$reqName = 'MESSAGE'">
+		<xsl:text>    @Length(max = MESSAGE_LIMIT)&#10;</xsl:text>
+		<xsl:text>    @JsonInclude(Include.NON_NULL)&#10;</xsl:text>
+		</xsl:if>
+		
 		<xsl:value-of select="$ident"/>
 		<xsl:text>    private </xsl:text>
 		<xsl:value-of select="jname:oracleToJavaType(@type, concat(@struct, @size))"/>
 		<xsl:text> </xsl:text>
 		<xsl:value-of select="istoe:fromLowerCase(jname:oracleToJavaParamName(@name))"/>	
+		<xsl:if test="$reqName = 'RESULT_CODE'">
+		<xsl:text> = SUCCESS_CODE</xsl:text>
+		</xsl:if>
 		<xsl:text>;&#10;&#10;</xsl:text>
 	<!--/xsl:if-->
  </xsl:template>
