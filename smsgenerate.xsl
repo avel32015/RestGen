@@ -640,7 +640,9 @@
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Request {&#10;&#10;</xsl:text>
-		<xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
+		<xsl:if test="procedure/param[@direction='in' and (@type='timestamp' or @type='date')]">
+            <xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
+		</xsl:if>
 		<xsl:apply-templates select="procedure/param[@direction='in']" mode="entityParamIn"/>
 		<xsl:text>}&#10;</xsl:text>
 	</redirect:write>
@@ -655,9 +657,18 @@
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Response {&#10;&#10;</xsl:text>
-		<xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
+		<xsl:if test="procedure/param[@direction='out' and (@type='timestamp' or @type='date')] | structure/attr[@type='timestamp' or @type='date']">
+            <xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;&#10;</xsl:text>
+		</xsl:if>
 		<xsl:text>    private static final int SUCCESS_CODE = 0;&#10;</xsl:text>
 		<xsl:text>    private static final int MESSAGE_LIMIT = 4000;&#10;&#10;</xsl:text>
+        
+		<xsl:text>    public </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/>
+		<xsl:text>Response(ResultMessage resultMessage, Object... params) {&#10;</xsl:text>
+		<xsl:text>        this.resultCode = resultMessage.code();&#10;</xsl:text>
+		<xsl:text>        this.message = resultMessage.message(params);&#10;</xsl:text>
+		<xsl:text>    }&#10;&#10;</xsl:text>
+		
 		<xsl:apply-templates select="procedure/param[@direction='out']" mode="entityParamOut"/>
 		<xsl:apply-templates select="structure" mode="entityOut"/>
 		<xsl:text>}&#10;</xsl:text>		
