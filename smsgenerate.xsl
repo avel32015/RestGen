@@ -78,6 +78,8 @@
 		<item type="entityRequestClass">import java.math.BigDecimal;&#10;</item>
 		<item type="entityRequestClass">import java.util.Date;&#10;</item>
 		<item type="entityRequestClass">import java.util.List;&#10;</item>
+		<item type="entityRequestClass">import javax.validation.constraints.Max;&#10;</item>
+		<item type="entityRequestClass">import javax.validation.constraints.Min;&#10;</item>
 		<item type="entityRequestClass">import javax.validation.constraints.NotNull;&#10;</item>
 		<item type="entityRequestClass">import javax.validation.constraints.Pattern;&#10;</item>
 		<item type="entityRequestClass">import lombok.Data;&#10;</item>
@@ -95,6 +97,8 @@
 		<item type="entityResponseClass">import java.math.BigDecimal;&#10;</item>
 		<item type="entityResponseClass">import java.util.Date;&#10;</item>
 		<item type="entityResponseClass">import java.util.List;&#10;</item>
+		<item type="entityResponseClass">import javax.validation.constraints.Max;&#10;</item>
+		<item type="entityResponseClass">import javax.validation.constraints.Min;&#10;</item>
 		<item type="entityResponseClass">import javax.validation.constraints.NotNull;&#10;</item>
 		<item type="entityResponseClass">import lombok.Data;&#10;</item>
 		<item type="entityResponseClass">import lombok.NoArgsConstructor;&#10;</item>
@@ -628,7 +632,8 @@
 	</xsl:for-each><xsl:text>);&#10;</xsl:text>
 
 	<xsl:text>        } catch (RepositoryException e) {&#10;</xsl:text>
-	<xsl:text>            log.error("Database error: {}", e.getMessage(), e);&#10;</xsl:text>
+	<xsl:text>            if (e.getResultCode() &lt; ResultMessage.DATABASE_ERROR.code()) log.error("Database error: {}", e.getMessage(), e);&#10;</xsl:text>
+	<xsl:text>            else log.warn("Database error: {}", e.getMessage(), e);&#10;</xsl:text>
 	<xsl:text>            response = new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response()&#10;</xsl:text>
 	<xsl:text>               .setResultCode(e.getResultCode())&#10;</xsl:text>
 	<xsl:text>               .setMessage(e.getMessage());&#10;</xsl:text>
@@ -1067,7 +1072,12 @@
 		</xsl:if>
 		<xsl:if test="@description">
             <xsl:value-of select="$ident"/>
-            <xsl:text>    @ApiModelProperty(value = &quot;</xsl:text><xsl:value-of select="@description"/><xsl:text>&quot;)&#10;</xsl:text>
+            <xsl:text>    @ApiModelProperty(value = &quot;</xsl:text><xsl:value-of select="concat(@description, '&quot;')"/>
+            <xsl:choose>
+                <xsl:when test="@null"><xsl:text>, allowEmptyValue = true</xsl:text></xsl:when>
+                <xsl:otherwise><xsl:text>, required = true</xsl:text></xsl:otherwise>
+            </xsl:choose>
+            <xsl:text>)&#10;</xsl:text>
 		</xsl:if>
 		<!--xsl:if test="$reqName = 'MESSAGE'"-->
 		<xsl:if test="@null and @direction='out'">
@@ -1091,6 +1101,14 @@
                 </xsl:if>
             </xsl:otherwise>
 		</xsl:choose>
+        <xsl:if test="@min">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @Min(value=</xsl:text><xsl:value-of select="@min"/><xsl:text>, message = &quot;Значение поля </xsl:text><xsl:value-of select="$reqName"/><xsl:text> меньше {value}&quot;)&#10;</xsl:text>
+        </xsl:if>
+        <xsl:if test="@max">
+            <xsl:value-of select="$ident"/>
+            <xsl:text>    @Max(value=</xsl:text><xsl:value-of select="@max"/><xsl:text>, message = &quot;Значение поля </xsl:text><xsl:value-of select="$reqName"/><xsl:text> больше {value}&quot;)&#10;</xsl:text>
+        </xsl:if>
 		<xsl:if test="@valid">
             <xsl:value-of select="$ident"/>
             <xsl:text>    @ValidNumbers(value = {</xsl:text><xsl:value-of select="@valid"/>
