@@ -103,6 +103,7 @@
 		<item type="entityResponseClass">import javax.validation.constraints.Min;&#10;</item>
 		<item type="entityResponseClass">import javax.validation.constraints.NotNull;&#10;</item>
 		<item type="entityResponseClass">import lombok.Data;&#10;</item>
+		<item type="entityResponseClass">import lombok.EqualsAndHashCode;&#10;</item>
 		<item type="entityResponseClass">import lombok.NoArgsConstructor;&#10;</item>
 		<item type="entityResponseClass">import lombok.experimental.Accessors;&#10;</item>
 		<item type="entityResponseClass">import org.hibernate.validator.constraints.Length;&#10;</item>
@@ -285,6 +286,7 @@
         <xsl:text>get</xsl:text>
         <xsl:choose>
             <xsl:when test="$javaType='Integer'"><xsl:text>Int</xsl:text></xsl:when>
+            <xsl:when test="$type='timestamp'"><xsl:text>Timestamp</xsl:text></xsl:when>
             <xsl:when test="$type='array'"><xsl:text>Array</xsl:text></xsl:when>
             <xsl:when test="$type='struct'"><xsl:text>Object</xsl:text></xsl:when>
             <xsl:when test="$type='cursor'"><xsl:text>Object</xsl:text></xsl:when>
@@ -690,7 +692,7 @@
 </xsl:template>
 
 <xsl:template match="procedure/param | structure/attr" mode="entityConstant">
-    <xsl:if test="@size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2')">
+    <xsl:if test="@size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2') and @name != 'message'">
         <xsl:text>    private static final int </xsl:text><xsl:value-of select="jname:oracleToStaticName(@name)"/><xsl:text>_LENGTH = </xsl:text><xsl:value-of select="@size"/><xsl:text>;&#10;</xsl:text>
     </xsl:if>
 </xsl:template>
@@ -701,14 +703,6 @@
 </xsl:template>
 
 <xsl:template match="procedure/validation" mode="entityValidator">
-    <!--
-    public static class DetailsCrmValidator implements ConstraintValidator<ValidRequest, DetailsCrmRequest> {
-        @Override public void initialize(ValidRequest constraintAnnotation) {}
-        @Override public boolean isValid(DetailsCrmRequest value, ConstraintValidatorContext context) {
-            return true;
-        }
-    }
-    -->
     <xsl:variable name="classEntity"> 
         <xsl:value-of select="jname:JavaClassName(../../@name)"/>
         <xsl:if test="@direction='in'"><xsl:text>Request</xsl:text></xsl:if>
@@ -716,12 +710,20 @@
     </xsl:variable>
     <xsl:text>    public static class </xsl:text><xsl:value-of select="$classEntity"/>
     <xsl:text>Validator implements ConstraintValidator&lt;ValidRequest, </xsl:text><xsl:value-of select="$classEntity"/><xsl:text>> {&#10;</xsl:text>
-    <xsl:text>        @Override public void initialize(ValidRequest constraintAnnotation) {}&#10;</xsl:text>
-    <xsl:text>        @Override public boolean isValid(</xsl:text><xsl:value-of select="$classEntity"/>
-    <xsl:text> value, ConstraintValidatorContext context) {&#10;</xsl:text>
-    <xsl:text>            //TODO validation&#10;</xsl:text>
-    <xsl:text>            return true;&#10;</xsl:text>
-    <xsl:text>        }&#10;</xsl:text>
+    <xsl:choose>
+        <xsl:when test=".">
+            <xsl:text>        </xsl:text>
+            <xsl:value-of select="java:replaceAll(string(.), '^\s+|\s+$', '')"/>
+            <xsl:text>&#10;</xsl:text>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:text>        @Override public void initialize(ValidRequest constraintAnnotation) {}&#10;</xsl:text>
+            <xsl:text>        @Override public boolean isValid(</xsl:text><xsl:value-of select="$classEntity"/><xsl:text> value, ConstraintValidatorContext context) {&#10;</xsl:text>
+            <xsl:text>            //TODO validation&#10;</xsl:text>
+            <xsl:text>            return true;&#10;</xsl:text>
+            <xsl:text>        }&#10;</xsl:text>
+        </xsl:otherwise>
+    </xsl:choose>
     <xsl:text>    }&#10;&#10;</xsl:text>
 </xsl:template>
 
@@ -739,13 +741,10 @@
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
 		<xsl:text>Request {&#10;&#10;</xsl:text>
-		<!--
-        <xsl:if test="procedure/param[@direction='in' and (istoe:translate(@type,false)='timestamp' or istoe:translate(@type,false)='date')]">
-            <xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;</xsl:text>
+        <xsl:if test="procedure/param[@direction='in' and @size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2')]">
+            <xsl:apply-templates select="procedure/param[@direction='in']" mode="entityConstant"/>
+            <xsl:text>&#10;</xsl:text>
         </xsl:if>
-        -->
-        <xsl:apply-templates select="procedure/param[@direction='in']" mode="entityConstant"/>
-        <xsl:if test="procedure/param[@direction='in' and @size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2')]"><xsl:text>&#10;</xsl:text></xsl:if>
 		<xsl:apply-templates select="procedure/param[@direction='in']" mode="entityParam"/>
 		<xsl:apply-templates select="enum" mode="entityIn"/>
 		<xsl:apply-templates select="procedure/validation[@direction='in']" mode="entityValidator"/>
@@ -758,24 +757,18 @@
 		<xsl:apply-templates select="procedure" mode="importTypeOut"/>	
 		<xsl:text>&#10;</xsl:text>
 		<xsl:value-of select="jname:defaultAnnatationLines('entityResponseClass')"/>
+		<xsl:text>@EqualsAndHashCode(callSuper=false)&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/validation[@direction='out']" mode="entityValidation"/>
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
-		<xsl:text>Response {&#10;&#10;</xsl:text>
-		<xsl:text>    private static final int SUCCESS_CODE = 0;&#10;</xsl:text>
-		<!--
-        <xsl:if test="procedure/param[@direction='out' and (istoe:translate(@type,false)='timestamp' or istoe:translate(@type,false)='date')] | structure/attr[istoe:translate(@type,false)='timestamp' or istoe:translate(@type,false)='date']">
-            <xsl:text>    private static final String DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";&#10;</xsl:text>
+		<xsl:text>Response extends AbstractResponse {&#10;&#10;</xsl:text>
+        <xsl:if test="procedure/param[@direction='out' and @size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2') and @name != 'message']">
+            <xsl:apply-templates select="procedure/param[@direction='out'] | structure/attr" mode="entityConstant"/>
+            <xsl:text>&#10;</xsl:text>
         </xsl:if>
-        -->
-        <xsl:apply-templates select="procedure/param[@direction='out'] | structure/attr" mode="entityConstant"/>
-        <xsl:if test="procedure/param[@direction='out' and @size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2')]"><xsl:text>&#10;</xsl:text></xsl:if>
-		<!--
-		<xsl:text>    public </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response(ResultMessage resultMessage, Object... params) {&#10;</xsl:text>
-		<xsl:text>        this.resultCode = resultMessage.code();&#10;</xsl:text>
-		<xsl:text>        this.message = resultMessage.message(params);&#10;</xsl:text>
+		<xsl:text>    public </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response(Integer resultCode, String message) {&#10;</xsl:text>
+		<xsl:text>        super(resultCode, message);&#10;</xsl:text>
 		<xsl:text>    }&#10;&#10;</xsl:text>
-        -->
 		<xsl:apply-templates select="procedure/param[@direction='out']" mode="entityParam"/>
 		<xsl:apply-templates select="structure" mode="entityOut"/>
 		<xsl:apply-templates select="procedure/validation[@direction='out']" mode="entityValidator"/>
@@ -1037,12 +1030,14 @@
 		</xsl:for-each>
 		<xsl:text>);&#10;</xsl:text>
 		
-		<xsl:text>        return new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response()&#10;</xsl:text>
+		<xsl:text>        return new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response(resultCode, message)&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
+            <xsl:if test="jname:oracleToJavaParamName(@name) != 'resultCode' and @name!='message'">
 			<xsl:text>            .set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>(</xsl:text>
 			<xsl:value-of select="jname:oracleToJavaParamName(@name)"/>
 			<xsl:text>)</xsl:text>
 			<xsl:if test="position()&lt;last()"><xsl:text>&#10;</xsl:text></xsl:if>
+			</xsl:if>
 		</xsl:for-each>
 		<xsl:text>;&#10;</xsl:text>
 		<xsl:text>    }&#10;&#10;</xsl:text>
@@ -1113,7 +1108,7 @@
 	<xsl:text>    }&#10;&#10;</xsl:text>
 </xsl:template>
 
-<xsl:template match="param | attr" mode="entityParam">
+<xsl:template match="param[direction='in' or (@name != 'o_result_code' and @name != 'message')] | attr" mode="entityParam">
         <xsl:variable name="reqName" select="jname:oracleToStaticName(@name)"/>
         <xsl:variable name="ident">
             <xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if>
@@ -1145,7 +1140,6 @@
             </xsl:choose>
             <xsl:text>)&#10;</xsl:text>
 		</xsl:if>
-		<!--xsl:if test="$reqName = 'MESSAGE'"-->
 		<xsl:if test="@null and @direction='out'">
             <xsl:text>    @JsonInclude(Include.NON_NULL)&#10;</xsl:text>
 		</xsl:if>
@@ -1217,62 +1211,6 @@
         <xsl:text>&#10;</xsl:text>
     </xsl:for-each>
 	<xsl:text>    }&#10;&#10;</xsl:text>
-</xsl:template>
-
-<!--
-<xsl:template match="structure" mode="rowMapperDeclare">
-    <xsl:variable name="class" select="jname:JavaClassName(@name)"/>
-    <xsl:if test="../procedure/param[@type='cursor' and @struct=$class] or ../structure/attr[@type='cursor' and @struct=$class]">
-    <xsl:text>    private final RowMapper&lt;</xsl:text><xsl:value-of select="$class"/>
-    <xsl:text>&gt; rowMapper</xsl:text><xsl:value-of select="$class"/>
-    <xsl:text>;&#10;</xsl:text>
-    </xsl:if>
-</xsl:template>
--->
-
-<xsl:template match="structure" mode="mapRow">
-    <!--
-    <xsl:template match="structure" mode="rowMapperBuild">
-            
-    private FinData mapRowFinData(ResultSet rs, int rowNum) throws SQLException {
-        FinData row = new FinData();
-        row.setTmNumber( rs.getString( FinDataFields.TM_NUMBER ) );
-        row.setBalanceMove( getBalanceMove( rs.getObject( FinDataFields.BALANCE_MOVE ) ) );
-        return row;
-    }
-	-->
-    <xsl:variable name="class" select="jname:JavaClassName(@name)"/>
-    <xsl:variable name="fields" select="concat($class,'Fields.')"/>
-    <xsl:if test="../procedure/param[@type='cursor' and @struct=$class] or ../structure/attr[@type='cursor' and @struct=$class]">
-    
-    <xsl:text>    private </xsl:text><xsl:value-of select="$class"/>
-    <xsl:text> mapRow</xsl:text><xsl:value-of select="$class"/>
-    <xsl:text>(ResultSet rs, int rowNum) throws SQLException {&#10;</xsl:text>
-    <xsl:text>        </xsl:text><xsl:value-of select="$class"/><xsl:text> row = new </xsl:text><xsl:value-of select="$class"/><xsl:text>();&#10;</xsl:text>
-	<xsl:for-each select="attr">
-        <xsl:variable name="attrClass" select="jname:JavaClassName(@struct)"/>
-        <xsl:variable name="getAttr" select="jname:oracleToGetter( concat($fields, istoe:translate(@name)), @type, @size)"/>
-		<xsl:text>        row.set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>( </xsl:text>
-        <xsl:choose>
-            <xsl:when test="@type = 'array'">
-                <xsl:text>getList</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>( rs.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
-            </xsl:when>
-            <xsl:when test="@type = 'cursor'">
-                <xsl:text>getList</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>( (ResultSet) rs.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
-            </xsl:when>
-            <xsl:when test="@type = 'struct'">
-                <xsl:text>get</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>( rs.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
-            </xsl:when>
-            <xsl:otherwise>
-                <xsl:text>rs.</xsl:text><xsl:value-of select="$getAttr"/>
-            </xsl:otherwise>
-        </xsl:choose>
-        <xsl:text> );&#10;</xsl:text>
-	</xsl:for-each>
-    <xsl:text>        return row;&#10;</xsl:text>
-    <xsl:text>    }&#10;&#10;</xsl:text>
-    
-    </xsl:if>
 </xsl:template>
 
 </xsl:stylesheet>
