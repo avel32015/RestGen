@@ -42,6 +42,7 @@
 		<item type="repositoryClass">import org.jetbrains.annotations.NotNull;&#10;</item>
 		<item type="repositoryClass">import org.jetbrains.annotations.Nullable;&#10;</item>
 		
+		<item type="repositoryImplClass">import lombok.RequiredArgsConstructor;&#10;</item>
 		<item type="repositoryImplClass">import lombok.SneakyThrows;&#10;</item>
 		<item type="repositoryImplClass">import lombok.extern.slf4j.Slf4j;&#10;</item>
 		<item type="repositoryImplClass">import java.math.BigDecimal;&#10;</item>
@@ -50,17 +51,18 @@
 		<item type="repositoryImplClass">import java.sql.ResultSet;&#10;</item>
 		<item type="repositoryImplClass">import java.sql.SQLException;&#10;</item>
 		<item type="repositoryImplClass">import java.sql.Struct;&#10;</item>
+		<item type="repositoryImplClass">import java.sql.Timestamp;&#10;</item>
 		<item type="repositoryImplClass">import java.sql.Types;&#10;</item>
 		<item type="repositoryImplClass">import java.util.Date;&#10;</item>
 		<item type="repositoryImplClass">import java.util.Map;&#10;</item>
 		<item type="repositoryImplClass">import java.util.List;&#10;</item>
+		<item type="repositoryImplClass">import java.util.Objects;&#10;</item>
 		<item type="repositoryImplClass">import java.util.stream.Collectors;&#10;</item>
 		<item type="repositoryImplClass">import java.util.stream.Stream;&#10;</item>
 		<item type="repositoryImplClass">import oracle.jdbc.OracleTypes;&#10;</item>
 		<item type="repositoryImplClass">import oracle.jdbc.driver.OracleConnection;&#10;</item>
 		<item type="repositoryImplClass">import org.jetbrains.annotations.NotNull;&#10;</item>
 		<item type="repositoryImplClass">import org.jetbrains.annotations.Nullable;&#10;</item>
-		<item type="repositoryImplClass">import org.springframework.beans.factory.annotation.Autowired;&#10;</item>
 		<item type="repositoryImplClass">import org.springframework.jdbc.core.JdbcTemplate;&#10;</item>
 		<item type="repositoryImplClass">import org.springframework.jdbc.core.SqlOutParameter;&#10;</item>
 		<item type="repositoryImplClass">import org.springframework.jdbc.core.SqlParameter;&#10;</item>
@@ -118,7 +120,8 @@
 		<item type="serviceImplClass">@Slf4j&#10;</item>
 		<item type="controllerClass">@RestController&#10;</item>
 		<item type="repositoryImplClass">@Repository&#10;</item>
-		<item type="repositoryImplClass">@Slf4j</item>
+		<item type="repositoryImplClass">@RequiredArgsConstructor&#10;</item>
+		<item type="repositoryImplClass">@Slf4j&#10;</item>
 		
 		<item type="entityRequestClass">@Accessors(chain = true)&#10;</item>
 		<item type="entityRequestClass">@Data&#10;</item>
@@ -259,10 +262,13 @@
 
 <func:function name="jname:mapAddValue">
 	<xsl:param name="name"/>
+	<xsl:param name="source"/>
 	<xsl:param name="type"/>
+	<xsl:param name="isFirst" select="false()"/>
 	<func:result>
-	<xsl:text>.addValue(</xsl:text>
-	<xsl:value-of select="jname:oracleToStaticName($name)"/>
+	<xsl:if test = "$isFirst=false()"><xsl:text>.addValue</xsl:text></xsl:if>
+	<xsl:text>(</xsl:text>
+	<xsl:value-of select="jname:oracleToStaticName(istoe:ifEmpty($source, $name))"/>
 	<xsl:text>, </xsl:text>
 	<xsl:if test = "$type='array'">
         <xsl:text>createArray(</xsl:text>
@@ -270,7 +276,7 @@
 	<xsl:value-of select="jname:oracleToJavaParamName($name)"/>
 	<xsl:if test = "$type='array'">
         <xsl:text>, </xsl:text>
-        <xsl:value-of select="jname:oracleToStaticName($name)"/>
+        <xsl:value-of select="jname:oracleToStaticName(istoe:ifEmpty($source, $name))"/>
         <xsl:text>_TYPE)</xsl:text>
 	</xsl:if>
 	<xsl:text>)</xsl:text>
@@ -355,11 +361,12 @@
 
 <func:function name="jname:mapResultGet">
 	<xsl:param name="name"/>
+	<xsl:param name="source"/>
 	<xsl:param name="type"/>
 	<xsl:param name="subtype"/>
 	<func:result>
         <xsl:value-of select="jname:oracleToJavaType($type, $subtype)"/><xsl:text> </xsl:text><xsl:value-of select="jname:oracleToJavaParamName($name)"/>
-        <xsl:text> = </xsl:text><xsl:value-of select="jname:resultGet($name, $type, $subtype)"/><xsl:text>;&#10;</xsl:text>
+        <xsl:text> = </xsl:text><xsl:value-of select="jname:resultGet(istoe:ifEmpty($source, $name), $type, $subtype)"/><xsl:text>;&#10;</xsl:text>
         <xsl:if test="jname:oracleToJavaParamName($name)='message'">
             <xsl:text>        ProcedureUtils.validateCode(resultCode, message);&#10;</xsl:text>
         </xsl:if>
@@ -379,7 +386,8 @@
 <func:function name="jname:oracleToStaticName">
 	<xsl:param name="name"/>
 	<func:result>
-		<xsl:value-of select="java:replaceFirst(istoe:translate(string($name)), '^[IiOo]{1,2}_', '')"/>
+		<!--<xsl:value-of select="java:replaceFirst(istoe:translate(string($name)), '^[IiOo]{1,2}_', '')"/>-->
+		<xsl:value-of select="istoe:translate(string($name))"/>
 	</func:result>
 </func:function>
 
@@ -693,7 +701,7 @@
 
 <xsl:template match="procedure/param | structure/attr" mode="entityConstant">
     <xsl:if test="@size and (istoe:translate(@type,false)='string' or istoe:translate(@type,false)='varchar2') and @name != 'message'">
-        <xsl:text>    private static final int </xsl:text><xsl:value-of select="jname:oracleToStaticName(@name)"/><xsl:text>_LENGTH = </xsl:text><xsl:value-of select="@size"/><xsl:text>;&#10;</xsl:text>
+        <xsl:text>    private static final int </xsl:text><xsl:value-of select="jname:oracleToStaticName(istoe:ifEmpty(@source, @name))"/><xsl:text>_LENGTH = </xsl:text><xsl:value-of select="@size"/><xsl:text>;&#10;</xsl:text>
     </xsl:if>
 </xsl:template>
 
@@ -819,170 +827,14 @@
 		<xsl:text>&#10;</xsl:text>
 		<xsl:value-of select="java:replaceAll(string(procedure/description), '^\s+|\s+$', '')"/>
 		<xsl:text>&#10;&#10;</xsl:text>
-		<xsl:value-of select="jname:defaultAnnatationLines('repositoryImplClass')"/><xsl:text>&#10;</xsl:text>	
+		<xsl:value-of select="jname:defaultAnnatationLines('repositoryImplClass')"/>
 		
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="concat(jname:JavaClassName(@name),'RepositoryImpl')"/>
 		<xsl:text> implements </xsl:text><xsl:value-of select="concat(jname:JavaClassName(@name),'Repository')"/><xsl:text> {&#10;&#10;</xsl:text>
 		<xsl:apply-templates select="procedure" mode="constantRepository"/>	
 		<xsl:apply-templates select="structure" mode="constantRepository"/>
-		<!-- <xsl:apply-templates select="structure" mode="rowMapperDeclare"/>-->
-   		<xsl:text>    private final SimpleJdbcCall jdbcCall;&#10;</xsl:text>
-   		<xsl:text>    private final MapSqlParameterSource params;&#10;&#10;</xsl:text>
-		
-		<!--
-		
-            Constructor 
-            
-		-->
-    	<xsl:text>    @Autowired&#10;</xsl:text>
-		<xsl:text>    public </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>RepositoryImpl(JdbcTemplate jdbcTemplate) {&#10;&#10;</xsl:text>
-		<!-- <xsl:apply-templates select="structure" mode="rowMapperBuild"/> -->
-		<xsl:text>        this.params = new MapSqlParameterSource();&#10;</xsl:text>
-		<xsl:text>        this.jdbcCall = new SimpleJdbcCall(jdbcTemplate)&#10;</xsl:text>
-		<xsl:text>            .withoutProcedureColumnMetaDataAccess()&#10;</xsl:text>
-		<xsl:text>            .withNamedBinding()&#10;</xsl:text>
-		<xsl:text>            .withSchemaName(SCHEMA)&#10;</xsl:text>
-		<xsl:text>            .withCatalogName(PACKAGE)&#10;</xsl:text>
-		<xsl:text>            .withProcedureName(PROCEDURE)&#10;</xsl:text>
-		<xsl:text>            .declareParameters(&#10;</xsl:text>
-		<xsl:for-each select="procedure/param">
-			<xsl:text>               </xsl:text>
-			<xsl:value-of select="jname:newSqlParameter(@name,@type,@direction,@struct)"/>
-			<xsl:if test="position()&lt;last()"><xsl:text>,</xsl:text></xsl:if>
-			<xsl:text>&#10;</xsl:text>
-		</xsl:for-each>
-		<xsl:text>            );&#10;</xsl:text>
-		<xsl:text>    }&#10;&#10;</xsl:text>
-		
-		<!--
-		
-		Helpers
-		
-		-->
-		<xsl:for-each select="structure">
-            <xsl:variable name="class" select="jname:JavaClassName(@name)"/>
-            <xsl:variable name="fields" select="concat($class,'Fields.')"/>
-            
-            <xsl:if test="../procedure/param[@type='cursor' and @struct=$class] or ../structure/attr[@type='cursor' and @struct=$class]">
-                <!--
-    private FinData mapRowFinData(ResultSet rs, int rowNum) throws SQLException {
-        FinData x = new FinData();
-        x.setTmNumber( rs.getString( FinDataFields.TM_NUMBER ) );
-        x.setBalanceMove( getBalanceMove( rs.getObject( FinDataFields.BALANCE_MOVE ) ) );
-        return x;
-    }
-                -->
-                <xsl:text>    private </xsl:text><xsl:value-of select="$class"/>
-                <xsl:text> mapRow</xsl:text><xsl:value-of select="$class"/>
-                <xsl:text>(ResultSet rs, int rowNum) throws SQLException {&#10;</xsl:text>
-                <xsl:text>        </xsl:text><xsl:value-of select="$class"/><xsl:text> x = new </xsl:text><xsl:value-of select="$class"/><xsl:text>();&#10;</xsl:text>
-            	<xsl:for-each select="attr">
-                    <xsl:variable name="attrClass" select="jname:JavaClassName(@struct)"/>
-                    <xsl:variable name="getAttr" select="jname:oracleToGetter( concat($fields, istoe:translate(@name)), @type, @size)"/>
-		            <xsl:text>        x.set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>( </xsl:text>
-                    <xsl:choose>
-                        <xsl:when test="@type = 'array'">
-                            <xsl:text>getList</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>( rs.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
-                        </xsl:when>
-                        <xsl:when test="@type = 'cursor'">
-                            <xsl:text>getList</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>( (ResultSet) rs.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
-                        </xsl:when>
-                        <xsl:when test="@type = 'struct'">
-                            <xsl:text>get</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>( rs.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
-                        </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:text>rs.</xsl:text><xsl:value-of select="$getAttr"/>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                    <xsl:text> );&#10;</xsl:text>
-	            </xsl:for-each>
-                <xsl:text>        return x;&#10;</xsl:text>
-                <xsl:text>    }&#10;&#10;</xsl:text>
-            </xsl:if>
-            
-            <xsl:if test="../procedure/param[@type='struct' and @struct=$class] or ../structure/attr[@struct=$class]">
-                <!-- 
-    @SneakyThrows(SQLException.class)
-    private BalanceMove getBalanceMove(Object struct) {
-        if (struct == null) return null;
-        Object[] attr = ((Struct) struct).getAttributes();
-        BalanceMove x = new BalanceMove();
-        x.setBalanceChargeId(((BigDecimal) attr[BalanceMoveFields.BALANCE_CHARGE_ID]).intValue());
-        return x;
-    }
-                -->
-                <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
-                <xsl:text>    private </xsl:text><xsl:value-of select="$class"/><xsl:text> get</xsl:text><xsl:value-of select="$class"/><xsl:text>(Object struct) {&#10;</xsl:text>
-                <xsl:text>        if (struct == null) return null;&#10;</xsl:text>
-                <xsl:text>        Object[] attr = ((Struct) struct).getAttributes();&#10;</xsl:text>
-                <xsl:text>        </xsl:text><xsl:value-of select="$class"/><xsl:text> x = new </xsl:text><xsl:value-of select="$class"/><xsl:text>();&#10;</xsl:text>
-                <xsl:for-each select="attr">
-                    <xsl:variable name="javaType" select="jname:oracleToJavaType(@type, concat(@struct, @size))"/>
-                    <xsl:text>        x.set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>(</xsl:text>
-                    <xsl:choose>
-                        <xsl:when test="@type = 'cursor'">
-                            <xsl:text>//TODO Cursor of </xsl:text><xsl:value-of select="jname:JavaClassName(@struct)"/>
-                        </xsl:when>
-                        <xsl:when test="@type = 'array'">
-                            <xsl:text>getList</xsl:text><xsl:value-of select="jname:JavaClassName(@struct)"/>
-                            <xsl:text>((Array) attr[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(@name))"/><xsl:text>])</xsl:text>
-                        </xsl:when>
-                        <xsl:when test="@type = 'struct'">
-                            <xsl:text>get</xsl:text><xsl:value-of select="jname:JavaClassName(@struct)"/>
-                            <xsl:text>(attr[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(@name))"/><xsl:text>])</xsl:text>
-                        </xsl:when>
-                        <xsl:when test="$javaType = 'Long'">
-                            <xsl:text>((BigDecimal) attr[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(@name))"/><xsl:text>]).longValue()</xsl:text>
-                        </xsl:when>
-                        <xsl:when test="$javaType = 'Integer'">
-                            <xsl:text>((BigDecimal) attr[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(@name))"/><xsl:text>]).intValue()</xsl:text>
-                        </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:text>(</xsl:text><xsl:value-of select="$javaType"/><xsl:text>) attr[</xsl:text>
-                            <xsl:value-of select="concat($fields,jname:oracleToStaticName(@name))"/><xsl:text>]</xsl:text>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                    <xsl:text>);&#10;</xsl:text>
-                </xsl:for-each>
-                <xsl:text>        return x;&#10;</xsl:text>
-                <xsl:text>    }&#10;&#10;</xsl:text>
-            </xsl:if>
-            
-            <xsl:if test="../procedure/param[@type='array' and @struct=$class] or ../structure/attr[@type='array' and @struct=$class]">
-                <!-- 
-                @SneakyThrows(SQLException.class)
-                private List<BalanceMove> getListBalanceMove(Array array) {
-                    return Stream.of(array != null ? (Object[]) array.getArray() : new Object[0])
-                        .map(this::getBalanceMove)
-                        .collect(Collectors.toList());
-                }
-                -->
-                <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
-                <xsl:text>    private List&lt;</xsl:text><xsl:value-of select="$class"/><xsl:text>&gt; getList</xsl:text><xsl:value-of select="$class"/><xsl:text>(Array array) {&#10;</xsl:text>
-                <xsl:text>        return Stream.of(array != null ? (Object[]) array.getArray() : new Object[0])&#10;</xsl:text>
-                <xsl:text>            .map(this::get</xsl:text><xsl:value-of select="$class"/><xsl:text>)&#10;</xsl:text>
-                <xsl:text>            .collect(Collectors.toList());&#10;</xsl:text>
-                <xsl:text>    }&#10;&#10;</xsl:text>
-            </xsl:if>
-		</xsl:for-each>
-		
-		<!--
-		<xsl:if test="structure and (procedure/param[@type='array' and @direction='out'] or structure/attr[@type='array'])">
-            <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
-            <xsl:text>    private Object[] toStructAttributes(Object row) {&#10;</xsl:text>
-            <xsl:text>        return row == null ? null : (Object[]) ((Struct) row).getAttributes();&#10;</xsl:text>
-            <xsl:text>    }&#10;&#10;</xsl:text>
-		</xsl:if>
-		-->
-		<xsl:if test="procedure/param[@type='array' and @direction='in']">
-            <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
-            <xsl:text>    private Array createArray(List&lt;? extends Object&gt; list, @NotNull String typeName) {&#10;</xsl:text>
-            <xsl:text>        if (list == null) return null;&#10;</xsl:text>
-            <xsl:text>        Connection connection = DataSourceUtils.getConnection(jdbcCall.getJdbcTemplate().getDataSource());&#10;</xsl:text>
-            <xsl:text>        return connection.unwrap(OracleConnection.class).createOracleArray(typeName, list.stream().toArray());&#10;</xsl:text>
-            <xsl:text>    }&#10;&#10;</xsl:text>
-		</xsl:if>
+   		<xsl:text>    private final JdbcTemplate jdbcTemplate;&#10;&#10;</xsl:text>
 		
 		<!--
 		
@@ -1005,17 +857,44 @@
 		</xsl:for-each>
 		<xsl:text>&#10;</xsl:text>
 		<xsl:text>    ) {&#10;</xsl:text>
-		<xsl:text>        params&#10;</xsl:text>
-		<xsl:for-each select="procedure/param[@direction='in']">
-			<xsl:text>            </xsl:text><xsl:value-of select="jname:mapAddValue(@name, @type)"/>
+		
+		<xsl:text>        SimpleJdbcCall procedure = new SimpleJdbcCall(jdbcTemplate)&#10;</xsl:text>
+		<xsl:text>            .withoutProcedureColumnMetaDataAccess()&#10;</xsl:text>
+		<xsl:text>            .withNamedBinding()&#10;</xsl:text>
+		<xsl:text>            .withSchemaName(SCHEMA)&#10;</xsl:text>
+		<xsl:text>            .withCatalogName(PACKAGE)&#10;</xsl:text>
+		<xsl:text>            .withProcedureName(PROCEDURE)&#10;</xsl:text>
+		<xsl:text>            .declareParameters(&#10;</xsl:text>
+		<xsl:for-each select="procedure/param[not(@null) or @direction='out']">
+			<xsl:text>               </xsl:text>
+			<xsl:value-of select="jname:newSqlParameter(istoe:ifEmpty(@source,@name),@type,@direction,@struct)"/>
+			<xsl:if test="position()&lt;last()"><xsl:text>,</xsl:text></xsl:if>
+			<xsl:text>&#10;</xsl:text>
+		</xsl:for-each>
+		<xsl:text>            );&#10;</xsl:text>
+		
+		<xsl:text>        MapSqlParameterSource params = new MapSqlParameterSource</xsl:text>
+		<xsl:for-each select="procedure/param[@direction='in' and not(@null)]">
+            <xsl:if test="position()=1"><xsl:value-of select="jname:mapAddValue(@name, @source, @type, true())"/></xsl:if>
+            <xsl:if test="position()>1"><xsl:text>            </xsl:text><xsl:value-of select="jname:mapAddValue(@name, @source, @type)"/></xsl:if>
 			<xsl:if test="position()=last()"><xsl:text>;</xsl:text></xsl:if>
 			<xsl:text>&#10;</xsl:text>
 		</xsl:for-each>
-		<xsl:text>        Map&lt;String, Object&gt; result = jdbcCall.execute(params);&#10;</xsl:text>
-		<xsl:text>        log.trace("Raw result of calling stored procedure ({}): {}", jdbcCall.getCallString(), result);&#10;</xsl:text>
+		<xsl:text>&#10;</xsl:text>
+		
+		<xsl:for-each select="procedure/param[@direction='in' and @null]">
+            <xsl:text>        if (</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name)"/><xsl:text> != null) {&#10;</xsl:text>
+            <xsl:text>            procedure.addDeclaredParameter(</xsl:text><xsl:value-of select="jname:newSqlParameter(istoe:ifEmpty(@source,@name),@type,@direction,@struct)"/><xsl:text>);&#10;</xsl:text>
+            <xsl:text>            params</xsl:text><xsl:value-of select="jname:mapAddValue(@name, @source, @type)"/><xsl:text>;&#10;</xsl:text>
+            <xsl:text>        }&#10;</xsl:text>
+		</xsl:for-each>
+		<xsl:text>&#10;</xsl:text>
+		
+		<xsl:text>        Map&lt;String, Object&gt; result = procedure.execute(params);&#10;</xsl:text>
+		<xsl:text>        log.trace("Raw result of calling stored procedure ({}): {}", procedure.getCallString(), result);&#10;</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
             <xsl:if test="@type='cursor'"><xsl:text>        @SuppressWarnings("unchecked")&#10;</xsl:text></xsl:if>
-			<xsl:text>        </xsl:text><xsl:value-of select="jname:mapResultGet(@name,@type,concat(@struct, @size))"/>
+			<xsl:text>        </xsl:text><xsl:value-of select="jname:mapResultGet(@name, @source, @type, concat(@struct, @size))"/>
 		</xsl:for-each>
 		<xsl:text>        log.debug(&quot;Result of calling stored procedure ({}): </xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
@@ -1023,23 +902,168 @@
 			<xsl:text>={}</xsl:text>
 			<xsl:if test="position()&lt;last()"><xsl:text>, </xsl:text></xsl:if>
 		</xsl:for-each>
-		<xsl:text>&quot;, jdbcCall.getCallString()</xsl:text>
+		<xsl:text>&quot;, procedure.getCallString()</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
 			<xsl:text>, </xsl:text>
 			<xsl:value-of select="jname:oracleToJavaParamName(@name)"/>
 		</xsl:for-each>
 		<xsl:text>);&#10;</xsl:text>
 		
-		<xsl:text>        return new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response(resultCode, message)&#10;</xsl:text>
+		<xsl:text>        return new </xsl:text><xsl:value-of select="jname:JavaClassName(@name)"/><xsl:text>Response(resultCode, message)</xsl:text>
 		<xsl:for-each select="procedure/param[@direction='out']">
             <xsl:if test="jname:oracleToJavaParamName(@name) != 'resultCode' and @name!='message'">
+            <xsl:text>&#10;</xsl:text>
 			<xsl:text>            .set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>(</xsl:text>
 			<xsl:value-of select="jname:oracleToJavaParamName(@name)"/>
 			<xsl:text>)</xsl:text>
-			<xsl:if test="position()&lt;last()"><xsl:text>&#10;</xsl:text></xsl:if>
 			</xsl:if>
 		</xsl:for-each>
 		<xsl:text>;&#10;</xsl:text>
+		<xsl:text>    }&#10;&#10;</xsl:text>
+		
+		<!--
+		
+		Helpers
+		
+		-->
+		<xsl:for-each select="structure">
+            <xsl:variable name="class" select="jname:JavaClassName(@name)"/>
+            <xsl:variable name="varClass"  select="istoe:fromLowerCase($class)"/>
+            <xsl:variable name="fields" select="concat($class,'Fields.')"/>
+            
+            <xsl:if test="../procedure/param[@type='cursor' and @struct=$class] or ../structure/attr[@type='cursor' and @struct=$class]">
+                <!--
+    private FinData mapRowFinData(ResultSet resultSet, int rowNum) throws SQLException {
+        FinData finData = new FinData();
+        finData.setTmNumber(resultSet.getString(FinDataFields.TM_NUMBER));
+        finData.setBalanceMove(getBalanceMove(resultSet.getObject(FinDataFields.BALANCE_MOVE)));
+        return finData;
+    }
+                -->
+                <xsl:text>    private </xsl:text><xsl:value-of select="$class"/>
+                <xsl:text> mapRow</xsl:text><xsl:value-of select="$class"/>
+                <xsl:text>(ResultSet resultSet, int rowNum) throws SQLException {&#10;</xsl:text>
+                <xsl:text>        </xsl:text><xsl:value-of select="concat($class, concat(' ', $varClass))"/><xsl:text> = new </xsl:text><xsl:value-of select="$class"/><xsl:text>();&#10;</xsl:text>
+            	<xsl:for-each select="attr">
+                    <xsl:variable name="attrClass" select="jname:JavaClassName(@struct)"/>
+                    <xsl:variable name="getAttr" select="jname:oracleToGetter( concat($fields, istoe:translate(@name)), @type, @size)"/>
+		            <xsl:text>        </xsl:text><xsl:value-of select="$varClass"/><xsl:text>.set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>( </xsl:text>
+                    <xsl:choose>
+                        <xsl:when test="@type = 'array'">
+                            <xsl:text>getList</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>(resultSet.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="@type = 'cursor'">
+                            <xsl:text>getList</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>((ResultSet) resultSet.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="@type = 'struct'">
+                            <xsl:text>get</xsl:text><xsl:value-of select="$attrClass"/><xsl:text>(resultSet.</xsl:text><xsl:value-of select="$getAttr"/><xsl:text> )</xsl:text>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>resultSet.</xsl:text><xsl:value-of select="$getAttr"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:text> );&#10;</xsl:text>
+	            </xsl:for-each>
+                <xsl:text>        return </xsl:text><xsl:value-of select="$varClass"/><xsl:text>;&#10;</xsl:text>
+                <xsl:text>    }&#10;&#10;</xsl:text>
+            </xsl:if>
+            
+            <xsl:if test="../procedure/param[@type='struct' and @struct=$class] or ../structure/attr[@struct=$class]">
+                <!-- 
+    @SneakyThrows(SQLException.class)
+    private BalanceMove getBalanceMove(Object structBalanceMove) {
+        if (structBalanceMove == null) return null;
+        Object[] attrBalanceMove = ((Struct) structBalanceMove).getAttributes();
+        if (attrBalanceMove == null) return null;
+        BalanceMove balanceMove = new BalanceMove();
+        balanceMove.setBalanceChargeId( intValue((BigDecimal) attrBalanceMove[BalanceMoveFields.BALANCE_CHARGE_ID]) );
+        return balanceMove;
+    }
+                -->
+                <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
+                <xsl:text>    private </xsl:text><xsl:value-of select="$class"/><xsl:text> get</xsl:text><xsl:value-of select="$class"/>
+                <xsl:text>(Object object</xsl:text><xsl:value-of select="$class"/><xsl:text>) {&#10;</xsl:text>
+                <xsl:text>        if (object</xsl:text><xsl:value-of select="$class"/><xsl:text> == null) return null;&#10;</xsl:text>
+                <xsl:text>        Object[] attr</xsl:text><xsl:value-of select="$class"/><xsl:text> = ((Struct) object</xsl:text><xsl:value-of select="$class"/><xsl:text>).getAttributes();&#10;</xsl:text>
+                <xsl:text>        if (attr</xsl:text><xsl:value-of select="$class"/><xsl:text> == null) return null;&#10;</xsl:text>
+                <xsl:text>        </xsl:text><xsl:value-of select="concat($class, concat(' ', $varClass))"/><xsl:text> = new </xsl:text><xsl:value-of select="$class"/><xsl:text>();&#10;</xsl:text>
+                <xsl:for-each select="attr">
+                    <xsl:variable name="javaType" select="jname:oracleToJavaType(@type, concat(@struct, @size))"/>
+                    <xsl:text>        </xsl:text><xsl:value-of select="$varClass"/><xsl:text>.set</xsl:text><xsl:value-of select="jname:oracleToJavaParamName(@name, true())"/><xsl:text>( </xsl:text>
+                    <xsl:choose>
+                        <xsl:when test="@type = 'cursor'">
+                            <xsl:text>//TODO Cursor of </xsl:text><xsl:value-of select="jname:JavaClassName(@struct)"/>
+                        </xsl:when>
+                        <xsl:when test="@type = 'array'">
+                            <xsl:text>getList</xsl:text><xsl:value-of select="jname:JavaClassName(@struct)"/>
+                            <xsl:text>((Array) attr</xsl:text><xsl:value-of select="$class"/><xsl:text>[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(istoe:ifEmpty(@source, @name)))"/><xsl:text>])</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="@type = 'struct'">
+                            <xsl:text>get</xsl:text><xsl:value-of select="jname:JavaClassName(@struct)"/>
+                            <xsl:text>(attr</xsl:text><xsl:value-of select="$class"/><xsl:text>[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(istoe:ifEmpty(@source, @name)))"/><xsl:text>])</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="@type = 'timestamp'">
+                            <xsl:text>(Timestamp) attr</xsl:text><xsl:value-of select="$class"/><xsl:text>[</xsl:text>
+                            <xsl:value-of select="concat($fields,jname:oracleToStaticName(istoe:ifEmpty(@source, @name)))"/><xsl:text>]</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="$javaType = 'Long'">
+                            <xsl:text>longValue((BigDecimal) attr</xsl:text><xsl:value-of select="$class"/><xsl:text>[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(istoe:ifEmpty(@source, @name)))"/><xsl:text>])</xsl:text>
+                        </xsl:when>
+                        <xsl:when test="$javaType = 'Integer'">
+                            <xsl:text>intValue((BigDecimal) attr</xsl:text><xsl:value-of select="$class"/><xsl:text>[</xsl:text><xsl:value-of select="concat($fields,jname:oracleToStaticName(istoe:ifEmpty(@source, @name)))"/><xsl:text>])</xsl:text>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>(</xsl:text><xsl:value-of select="$javaType"/><xsl:text>) attr</xsl:text><xsl:value-of select="$class"/><xsl:text>[</xsl:text>
+                            <xsl:value-of select="concat($fields,jname:oracleToStaticName(istoe:ifEmpty(@source, @name)))"/><xsl:text>]</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:text> );&#10;</xsl:text>
+                </xsl:for-each>
+                <xsl:text>        return </xsl:text><xsl:value-of select="$varClass"/><xsl:text>;&#10;</xsl:text>
+                <xsl:text>    }&#10;&#10;</xsl:text>
+            </xsl:if>
+            
+            <xsl:if test="../procedure/param[@type='array' and @struct=$class] or ../structure/attr[@type='array' and @struct=$class]">
+                <!-- 
+                @SneakyThrows(SQLException.class)
+                private List<BalanceMove> getListBalanceMove(Array arrayBalanceMove) {
+                    Object[] itemsBalanceMove = arrayBalanceMove != null ? (Object[]) arrayBalanceMove.getArray() : new Object[0];
+                    return Stream.of(itemsBalanceMove).map(this::getBalanceMove).filter(Objects::nonNull).collect(Collectors.toList());
+                }
+                -->
+                <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
+                <xsl:text>    private List&lt;</xsl:text><xsl:value-of select="$class"/><xsl:text>&gt; getList</xsl:text><xsl:value-of select="$class"/><xsl:text>(Array array</xsl:text><xsl:value-of select="$class"/><xsl:text>) {&#10;</xsl:text>
+                <xsl:text>        Object[] items</xsl:text><xsl:value-of select="$class"/>
+                <xsl:text> = array</xsl:text><xsl:value-of select="$class"/><xsl:text> != null ? (Object[]) array</xsl:text><xsl:value-of select="$class"/><xsl:text>.getArray() : new Object[0];&#10;</xsl:text>
+                <xsl:text>        return Stream.of(items</xsl:text><xsl:value-of select="$class"/><xsl:text>).map(this::get</xsl:text><xsl:value-of select="$class"/>
+                <xsl:text>).filter(Objects::nonNull).collect(Collectors.toList());&#10;</xsl:text>
+                <xsl:text>    }&#10;&#10;</xsl:text>
+            </xsl:if>
+		</xsl:for-each>
+		
+		<!--
+		<xsl:if test="structure and (procedure/param[@type='array' and @direction='out'] or structure/attr[@type='array'])">
+            <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
+            <xsl:text>    private Object[] toStructAttributes(Object row) {&#10;</xsl:text>
+            <xsl:text>        return row == null ? null : (Object[]) ((Struct) row).getAttributes();&#10;</xsl:text>
+            <xsl:text>    }&#10;&#10;</xsl:text>
+		</xsl:if>
+		-->
+		<xsl:if test="procedure/param[@type='array' and @direction='in']">
+            <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
+            <xsl:text>    private Array createArray(List&lt;? extends Object&gt; list, @NotNull String typeName) {&#10;</xsl:text>
+            <xsl:text>        if (list == null) return null;&#10;</xsl:text>
+            <xsl:text>        Connection connection = DataSourceUtils.getConnection(jdbcTemplate.getDataSource());&#10;</xsl:text>
+            <xsl:text>        return connection.unwrap(OracleConnection.class).createOracleArray(typeName, list.stream().toArray());&#10;</xsl:text>
+            <xsl:text>    }&#10;&#10;</xsl:text>
+		</xsl:if>
+
+		<xsl:text>    private Long longValue(BigDecimal value) {&#10;</xsl:text>
+		<xsl:text>        return value == null ? null : Long.valueOf(value.longValue());&#10;</xsl:text>
+		<xsl:text>    }&#10;&#10;</xsl:text>
+
+		<xsl:text>    private Integer intValue(BigDecimal value) {&#10;</xsl:text>
+		<xsl:text>        return value == null ? null : Integer.valueOf(value.intValue());&#10;</xsl:text>
 		<xsl:text>    }&#10;&#10;</xsl:text>
 		
 		<xsl:text>}&#10;</xsl:text>
@@ -1070,9 +1094,9 @@
 	<xsl:text>    private static final String PROCEDURE = "</xsl:text><xsl:value-of select="istoe:translate(@name)"/><xsl:text>";&#10;</xsl:text>
 	<xsl:text>&#10;</xsl:text>
 	<xsl:for-each select="param">
-		<xsl:value-of select="jname:finalStringOracleParam(@name,@source)"/>
+		<xsl:value-of select="jname:finalStringOracleParam(istoe:ifEmpty(@source, @name), @source)"/>
 		<xsl:if test="@type='array'">
-            <xsl:value-of select="jname:finalStringOracleParam(concat(@name, '_TYPE'),istoe:ifEmpty(@typename,@source))"/>
+            <xsl:value-of select="jname:finalStringOracleParam(concat(@name, '_TYPE'),istoe:ifEmpty(@typename, @source))"/>
 		</xsl:if>
 	</xsl:for-each>
 	<xsl:text>&#10;</xsl:text>
@@ -1084,32 +1108,26 @@
     <xsl:if test="../procedure/param[@type='array' and @struct=$structName] or ../structure/attr[@type='array' and @struct=$structName]">
         <xsl:for-each select="attr">
             <xsl:text>        static final int </xsl:text>
-            <xsl:value-of select="jname:oracleToStaticName(@name)"/>
+            <xsl:value-of select="jname:oracleToStaticName(istoe:ifEmpty(@source, @name))"/>
             <xsl:text> = </xsl:text>
             <xsl:value-of select="position() - 1"/>
             <xsl:text>;&#10;</xsl:text>
-            <!--<xsl:if test="@type='array'">
-                <xsl:value-of select="jname:finalStringOracleParam(concat(@name, '_TYPE'),istoe:ifEmpty(@typename,@source))"/>
-            </xsl:if>-->
         </xsl:for-each>	
     </xsl:if>
     <xsl:if test="../procedure/param[@type='cursor' and @struct=$structName] or ../structure/attr[@type='cursor' and @struct=$structName]">
         <xsl:for-each select="attr">
             <xsl:text>        static final String </xsl:text>
-            <xsl:value-of select="jname:oracleToStaticName(@name)"/>
+            <xsl:value-of select="jname:oracleToStaticName(istoe:ifEmpty(@source, @name))"/>
             <xsl:text> = &quot;</xsl:text>
             <xsl:value-of select="@name"/>
             <xsl:text>&quot;;&#10;</xsl:text>
-            <!--<xsl:if test="@type='array'">
-                <xsl:value-of select="jname:finalStringOracleParam(concat(@name, '_TYPE'),istoe:ifEmpty(@typename,@source))"/>
-            </xsl:if>-->
         </xsl:for-each>	
     </xsl:if>
 	<xsl:text>    }&#10;&#10;</xsl:text>
 </xsl:template>
 
 <xsl:template match="param[direction='in' or (@name != 'o_result_code' and @name != 'message')] | attr" mode="entityParam">
-        <xsl:variable name="reqName" select="jname:oracleToStaticName(@name)"/>
+        <xsl:variable name="reqName" select="jname:oracleToStaticName(istoe:ifEmpty(@source, @name))"/>
         <xsl:variable name="ident">
             <xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if>
 		</xsl:variable>
