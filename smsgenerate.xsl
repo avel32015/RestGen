@@ -385,9 +385,10 @@
 
 <func:function name="jname:oracleToStaticName">
 	<xsl:param name="name"/>
+	<xsl:param name="withPrefix" select="true()"/>
 	<func:result>
-		<!--<xsl:value-of select="java:replaceFirst(istoe:translate(string($name)), '^[IiOo]{1,2}_', '')"/>-->
-		<xsl:value-of select="istoe:translate(string($name))"/>
+		<xsl:if test="not($withPrefix)"><xsl:value-of select="java:replaceFirst(istoe:translate(string($name)), '^[IiOo]{1,2}_', '')"/></xsl:if>
+		<xsl:if test="$withPrefix"><xsl:value-of select="istoe:translate(string($name))"/></xsl:if>
 	</func:result>
 </func:function>
 
@@ -765,7 +766,7 @@
 		<xsl:apply-templates select="procedure" mode="importTypeOut"/>	
 		<xsl:text>&#10;</xsl:text>
 		<xsl:value-of select="jname:defaultAnnatationLines('entityResponseClass')"/>
-		<xsl:text>@EqualsAndHashCode(callSuper=false)&#10;</xsl:text>
+		<xsl:text>@EqualsAndHashCode(callSuper=true)&#10;</xsl:text>
 		<xsl:apply-templates select="procedure/validation[@direction='out']" mode="entityValidation"/>
 		<xsl:text>public class </xsl:text>
 		<xsl:value-of select="jname:JavaClassName(@name)"/>
@@ -968,17 +969,34 @@
                 <xsl:text>    }&#10;&#10;</xsl:text>
             </xsl:if>
             
-            <xsl:if test="../procedure/param[@type='struct' and @struct=$class] or ../structure/attr[@struct=$class]">
+            <xsl:if test="../procedure/param[@type='array' and @struct=$class] or ../structure/attr[@type='array' and @struct=$class]">
                 <!-- 
-    @SneakyThrows(SQLException.class)
-    private BalanceMove getBalanceMove(Object structBalanceMove) {
-        if (structBalanceMove == null) return null;
-        Object[] attrBalanceMove = ((Struct) structBalanceMove).getAttributes();
-        if (attrBalanceMove == null) return null;
-        BalanceMove balanceMove = new BalanceMove();
-        balanceMove.setBalanceChargeId( intValue((BigDecimal) attrBalanceMove[BalanceMoveFields.BALANCE_CHARGE_ID]) );
-        return balanceMove;
-    }
+                @SneakyThrows(SQLException.class)
+                private List<BalanceMove> getListBalanceMove(Array arrayBalanceMove) {
+                    Object[] itemsBalanceMove = arrayBalanceMove != null ? (Object[]) arrayBalanceMove.getArray() : new Object[0];
+                    return Stream.of(itemsBalanceMove).map(this::getBalanceMove).filter(Objects::nonNull).collect(Collectors.toList());
+                }
+                -->
+                <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
+                <xsl:text>    private List&lt;</xsl:text><xsl:value-of select="$class"/><xsl:text>&gt; getList</xsl:text><xsl:value-of select="$class"/><xsl:text>(Array array</xsl:text><xsl:value-of select="$class"/><xsl:text>) {&#10;</xsl:text>
+                <xsl:text>        Object[] items</xsl:text><xsl:value-of select="$class"/>
+                <xsl:text> = array</xsl:text><xsl:value-of select="$class"/><xsl:text> != null ? (Object[]) array</xsl:text><xsl:value-of select="$class"/><xsl:text>.getArray() : new Object[0];&#10;</xsl:text>
+                <xsl:text>        return Stream.of(items</xsl:text><xsl:value-of select="$class"/><xsl:text>).map(this::get</xsl:text><xsl:value-of select="$class"/>
+                <xsl:text>).filter(Objects::nonNull).collect(Collectors.toList());&#10;</xsl:text>
+                <xsl:text>    }&#10;&#10;</xsl:text>
+            </xsl:if>
+            
+            <xsl:if test="../procedure/param[@struct=$class] or ../structure/attr[@struct=$class]">
+                <!-- 
+                @SneakyThrows(SQLException.class)
+                private BalanceMove getBalanceMove(Object structBalanceMove) {
+                    if (structBalanceMove == null) return null;
+                    Object[] attrBalanceMove = ((Struct) structBalanceMove).getAttributes();
+                    if (attrBalanceMove == null) return null;
+                    BalanceMove balanceMove = new BalanceMove();
+                    balanceMove.setBalanceChargeId( intValue((BigDecimal) attrBalanceMove[BalanceMoveFields.BALANCE_CHARGE_ID]) );
+                    return balanceMove;
+                }
                 -->
                 <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
                 <xsl:text>    private </xsl:text><xsl:value-of select="$class"/><xsl:text> get</xsl:text><xsl:value-of select="$class"/>
@@ -1023,22 +1041,6 @@
                 <xsl:text>    }&#10;&#10;</xsl:text>
             </xsl:if>
             
-            <xsl:if test="../procedure/param[@type='array' and @struct=$class] or ../structure/attr[@type='array' and @struct=$class]">
-                <!-- 
-                @SneakyThrows(SQLException.class)
-                private List<BalanceMove> getListBalanceMove(Array arrayBalanceMove) {
-                    Object[] itemsBalanceMove = arrayBalanceMove != null ? (Object[]) arrayBalanceMove.getArray() : new Object[0];
-                    return Stream.of(itemsBalanceMove).map(this::getBalanceMove).filter(Objects::nonNull).collect(Collectors.toList());
-                }
-                -->
-                <xsl:text>    @SneakyThrows(SQLException.class)&#10;</xsl:text>
-                <xsl:text>    private List&lt;</xsl:text><xsl:value-of select="$class"/><xsl:text>&gt; getList</xsl:text><xsl:value-of select="$class"/><xsl:text>(Array array</xsl:text><xsl:value-of select="$class"/><xsl:text>) {&#10;</xsl:text>
-                <xsl:text>        Object[] items</xsl:text><xsl:value-of select="$class"/>
-                <xsl:text> = array</xsl:text><xsl:value-of select="$class"/><xsl:text> != null ? (Object[]) array</xsl:text><xsl:value-of select="$class"/><xsl:text>.getArray() : new Object[0];&#10;</xsl:text>
-                <xsl:text>        return Stream.of(items</xsl:text><xsl:value-of select="$class"/><xsl:text>).map(this::get</xsl:text><xsl:value-of select="$class"/>
-                <xsl:text>).filter(Objects::nonNull).collect(Collectors.toList());&#10;</xsl:text>
-                <xsl:text>    }&#10;&#10;</xsl:text>
-            </xsl:if>
 		</xsl:for-each>
 		
 		<!--
@@ -1057,15 +1059,16 @@
             <xsl:text>        return connection.unwrap(OracleConnection.class).createOracleArray(typeName, list.stream().toArray());&#10;</xsl:text>
             <xsl:text>    }&#10;&#10;</xsl:text>
 		</xsl:if>
-
-		<xsl:text>    private Long longValue(BigDecimal value) {&#10;</xsl:text>
-		<xsl:text>        return value == null ? null : Long.valueOf(value.longValue());&#10;</xsl:text>
-		<xsl:text>    }&#10;&#10;</xsl:text>
-
-		<xsl:text>    private Integer intValue(BigDecimal value) {&#10;</xsl:text>
-		<xsl:text>        return value == null ? null : Integer.valueOf(value.intValue());&#10;</xsl:text>
-		<xsl:text>    }&#10;&#10;</xsl:text>
 		
+		<xsl:if test="procedure/param[@direction='out' and @struct]">
+            <xsl:text>    private Long longValue(BigDecimal value) {&#10;</xsl:text>
+            <xsl:text>        return value == null ? null : Long.valueOf(value.longValue());&#10;</xsl:text>
+            <xsl:text>    }&#10;&#10;</xsl:text>
+            <xsl:text>    private Integer intValue(BigDecimal value) {&#10;</xsl:text>
+            <xsl:text>        return value == null ? null : Integer.valueOf(value.intValue());&#10;</xsl:text>
+            <xsl:text>    }&#10;&#10;</xsl:text>
+		</xsl:if>
+
 		<xsl:text>}&#10;</xsl:text>
 	</redirect:write>
 </xsl:template>
@@ -1127,7 +1130,7 @@
 </xsl:template>
 
 <xsl:template match="param[direction='in' or (@name != 'o_result_code' and @name != 'message')] | attr" mode="entityParam">
-        <xsl:variable name="reqName" select="jname:oracleToStaticName(istoe:ifEmpty(@source, @name))"/>
+        <xsl:variable name="reqName" select="jname:oracleToStaticName(@name, false)"/>
         <xsl:variable name="ident">
             <xsl:if test="name()='attr'"><xsl:text>    </xsl:text></xsl:if>
 		</xsl:variable>
