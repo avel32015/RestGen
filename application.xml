@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<application name="tpmi" basePackage="ru.tinkoff" basePath=".">
+<application name="tpxz" basePackage="ru.fds" basePath=".">
 	<service name="Subscribers">
 		<method name="getClientInfo">
             <!-- 
@@ -47,18 +47,18 @@
 				<param name="o_result_code" direction="out" type="number"/>
 				<param name="o_message" direction="out" type="varchar2" null=""/>
                 
-                <param name="o_ident_contract_fw" direction="out" type="varchar2" size="25" comment="Обязательно. Идентификатор контракта FW (fw_contracts.v_ext_ident)"/>
-                <param name="o_account_day" direction="out" type="number" size="2" comment="Обязательно. Порядковый день месяца в FW (значение fw_contracts.n_ref_point+1)"/>
-                <param name="o_dt_reg_contract" direction="out" type="timestamp" null="" comment="Необязательно, Дата подписания контракта"/>
-                <param name="o_status" direction="out" type="number" size="1" valid="(0, 1, 2)" comment="Обязательно, Статус контракта: 0 – Удаленный, 1 – Действующий, 2 – Расторгнутый"/>
-                <param name="o_end_date" direction="out" type="timestamp" null="" comment="Необязательно. Дата расторжения"/>
-                <param name="o_contract_type" direction="out" type="number" size="1" valid="(1, 2, 3)" comment="Обязательно, Идентификатор типа контракта: 1 - нет договора с банком, 2 - есть договор с банком, 3 - есть договор с банком и включено кредитование"/>
-                <param name="o_last_account_date_change" direction="out" type="timestamp" comment="Обязательно. Последняя дата изменения"/>
-                <param name="o_service_list" direction="out" type="tcs_t_mnp_service_out_list" comment="Обязательно. Список основных услуг"/>
-                <param name="o_next_account_date" direction="out" type="timestamp" null="" comment="Необязательно. Рассчитанная дата следующего выставления следующего счета"/>
+                		<param name="o_ident_contract_fw" direction="out" type="varchar2" size="25" comment="Обязательно. Идентификатор контракта FW (fw_contracts.v_ext_ident)"/>
+                		<param name="o_account_day" direction="out" type="number" size="2" comment="Обязательно. Порядковый день месяца в FW (значение fw_contracts.n_ref_point+1)"/>
+                		<param name="o_dt_reg_contract" direction="out" type="timestamp" null="" comment="Необязательно, Дата подписания контракта"/>
+                		<param name="o_status" direction="out" type="number" size="1" valid="(0, 1, 2)" comment="Обязательно, Статус контракта: 0 – Удаленный, 1 – Действующий, 2 – Расторгнутый"/>
+                		<param name="o_end_date" direction="out" type="timestamp" null="" comment="Необязательно. Дата расторжения"/>
+                		<param name="o_contract_type" direction="out" type="number" size="1" valid="(1, 2, 3)" comment="Обязательно, Идентификатор типа контракта: 1 - нет договора с банком, 2 - есть договор с банком, 3 - есть договор с банком и включено кредитование"/>
+                		<param name="o_last_account_date_change" direction="out" type="timestamp" comment="Обязательно. Последняя дата изменения"/>
+                		<param name="o_service_list" direction="out" type="tcs_t_mnp_service_out_list" comment="Обязательно. Список основных услуг"/>
+                		<param name="o_next_account_date" direction="out" type="timestamp" null="" comment="Необязательно. Рассчитанная дата следующего выставления следующего счета"/>
                 
-                <param name="o_id_service_inst_fw" direction="out" type="number" size="10" comment="Обязательно.  ID экземпляра услуги (fw_services.id_service_inst)"/>
-                <param name="o_ident_application_inter" direction="out" type="varchar2" size="40" comment="Обязательно. Интеграционный входящий ID заявки"/>
+                		<param name="o_id_service_inst_fw" direction="out" type="number" size="10" comment="Обязательно.  ID экземпляра услуги (fw_services.id_service_inst)"/>
+                		<param name="o_ident_application_inter" direction="out" type="varchar2" size="40" comment="Обязательно. Интеграционный входящий ID заявки"/>
                 
 			</procedure>
             
